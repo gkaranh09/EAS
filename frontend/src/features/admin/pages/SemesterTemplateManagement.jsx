@@ -4,7 +4,7 @@ import { useAuth } from '../../../context/AuthContext.jsx';
 import Layout from '../../../layouts/Layout.jsx';
 import { getTemplatesApi, createTemplateApi, updateTemplateApi, deleteTemplateApi } from '../api/adminApi';
 import { Layers, ArrowLeft, Plus, Trash2, Edit3, ChevronDown, ChevronUp, AlertCircle, Check, Star, ToggleLeft, ToggleRight, Search, GripVertical, X } from 'lucide-react';
-import axios from 'axios';
+import { ProgramSelect } from '../../../components/common/LookupSelect';
 
 export default function SemesterTemplateManagement() {
   const navigate = useNavigate();
@@ -300,11 +300,11 @@ export default function SemesterTemplateManagement() {
         }}>
           <div style={{ flex: 1, minWidth: '240px' }}>
             <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.4rem', fontSize: '0.82rem' }}>Program</label>
-            <select value={selectedProgramId} onChange={(e) => { setSelectedProgramId(e.target.value); setHasLoaded(false); setTemplates([]); }}
-              style={{ width: '100%', padding: '0.6rem 0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.88rem', background: 'white' }}>
-              <option value="">Select Program</option>
-              {programs.map(p => <option key={p.program_id} value={p.program_id}>{p.program_name}</option>)}
-            </select>
+            <ProgramSelect
+              value={selectedProgramId}
+              onChange={(e) => { setSelectedProgramId(e.target.value); setHasLoaded(false); setTemplates([]); }}
+              placeholder="Select Program"
+            />
           </div>
 
           <div style={{ width: '140px' }}>

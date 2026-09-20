@@ -3,7 +3,11 @@ import axios from 'axios';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import Layout from '../../../layouts/Layout.jsx';
 import { getEmployeesApi, addEmployeeApi, toggleActiveApi, updateRoleApi } from '../api/adminApi';
-import { Users, Search, Plus, UserPlus, Settings, Shield, Ban, CheckCircle2, UserCircle, Briefcase, Mail, Key, ArrowLeft, RefreshCw, AlertCircle, Info, Check, UserCheck, UserX, Building, XCircle } from 'lucide-react';
+import { 
+  Users, UserPlus, Shield, UserCheck, CheckCircle, XCircle, Trash2, Key, Search, RefreshCw, Layers, Edit, Check, AlertCircle, Info, Lock, ChevronDown, ChevronUp, ChevronRight,
+  ArrowLeft, Mail, Building, CheckCircle2, UserX
+} from 'lucide-react';
+import { DepartmentSelect } from '../../../components/common/LookupSelect';
 import { useNavigate } from 'react-router-dom';
 
 export default function EmployeeManagement() {
@@ -601,19 +605,16 @@ export default function EmployeeManagement() {
 
               <div className="form-group" style={{ marginBottom: '1rem' }}>
                 <label className="form-label" htmlFor="add_dept">Department</label>
-                <select
+                <DepartmentSelect
                   id="add_dept"
                   className="form-select"
-                  value={addForm.department}
-                  onChange={(e) => setAddForm({ ...addForm, department: e.target.value })}
-                  required
-                >
-                  {departmentsList.map(dept => (
-                    <option key={dept.department_id} value={dept.department_name}>
-                      {dept.department_name} ({dept.department_code})
-                    </option>
-                  ))}
-                </select>
+                  value={departmentsList.find(d => d.department_name === addForm.department)?.department_id || ''}
+                  onChange={(e) => {
+                    const selectedId = e.target.value;
+                    const deptObj = departmentsList.find(d => String(d.department_id) === String(selectedId));
+                    setAddForm({ ...addForm, department: deptObj ? deptObj.department_name : '' });
+                  }}
+                />
               </div>
 
               <div className="form-group" style={{ marginBottom: '1.5rem' }}>

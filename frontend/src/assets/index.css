@@ -692,7 +692,7 @@ body {
   background: var(--bg-deep);
 }
 .login-left-banner {
-  flex: 1.1;
+  flex: 0.8;
   background: #002147;
   color: #ffffff;
   padding: 4.5rem 3.5rem;
@@ -763,7 +763,7 @@ body {
 }
 
 .login-right-panel {
-  flex: 0.9;
+  flex: 1.2;
   background: #ffffff;
   display: flex;
   align-items: center;
@@ -772,7 +772,7 @@ body {
 }
 .login-panel-inner {
   width: 100%;
-  max-width: 440px;
+  max-width: 580px;
 }
 .login-panel-title {
   font-size: 1.8rem;

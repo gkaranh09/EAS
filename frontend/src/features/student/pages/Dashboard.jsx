@@ -1,34 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import Layout from '../../../layouts/Layout.jsx';
-import { getExamsApi, downloadPdfApi, downloadAdmitCardApi } from '../api/studentApi';
-import { CheckCircle, AlertCircle, FileText, CreditCard, Edit, BookOpen, Inbox } from 'lucide-react';
-
-// Sample slides for the interactive carousel banner
-const BANNER_SLIDES = [
-  {
-    title: "TCET CENTER OF EXCELLENCE",
-    desc: "From labs to leadership — our students and faculty push boundaries across technology, research, and innovation ecosystems."
-  },
-  {
-    title: "RESEARCH & DEVELOPMENT",
-    desc: "Bridging the gap between academic theory and industrial application by fostering next-generation patents, papers, and products."
-  },
-  {
-    title: "GLOBAL COLLABORATIONS",
-    desc: "Empowering students through industrial partnerships, specialized research grants, and international university projects."
-  }
-];
-
-// Collage Images
-const COLLAGE_IMAGES = [
-  "https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=300&q=80",
-  "https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=300&q=80",
-  "https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&w=300&q=80",
-  "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&w=300&q=80",
-  "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=300&q=80"
-];
+import { getExamsApi, downloadPdfApi, downloadAdmitCardApi, getProfileStatusApi } from '../api/studentApi';
+import { getCloudinaryUrl } from '../../../utils/imageUtils';
+import { 
+  CheckCircle, AlertCircle, FileText, CreditCard, Edit, BookOpen, 
+  Inbox, User, AlertTriangle, ArrowRight, X, ShieldAlert 
+} from 'lucide-react';
 
 function ExamCard({ exam, onFillForm }) {
   const navigate = useNavigate();
@@ -115,28 +94,30 @@ function ExamCard({ exam, onFillForm }) {
         isPaid ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
             <div className="alert success" style={{ fontSize: '0.82rem', padding: '0.5rem 0.8rem', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
-              <CheckCircle size={15} /> Submitted and Paid successfully (Form #{exam.form_id}).
+              <CheckCircle size={15} /> Submitted and Paid ({exam.form_code ? `Application No: ${exam.form_code}` : `Form #${exam.form_id}`}).
             </div>
-            <div style={{ fontSize: '0.82rem', padding: '0.5rem 0.8rem', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '0.4rem', 
-              background: exam.is_approved ? '#f0fdf4' : '#f1f5f9', 
-              border: exam.is_approved ? '1px solid #bbf7d0' : '1px solid #e2e8f0', 
-              color: exam.is_approved ? '#15803d' : '#475569' 
+            <div style={{
+              fontSize: '0.82rem', padding: '0.5rem 0.8rem', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '0.4rem',
+              background: exam.is_approved ? '#f0fdf4' : '#f1f5f9',
+              border: exam.is_approved ? '1px solid #bbf7d0' : '1px solid #e2e8f0',
+              color: exam.is_approved ? '#15803d' : '#475569'
             }}>
               {exam.is_approved ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
               Approval Status: <strong>{exam.is_approved ? 'Approved by Faculty' : 'Pending Faculty Approval'}</strong>
             </div>
-            <div style={{ fontSize: '0.82rem', padding: '0.5rem 0.8rem', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '0.4rem', 
-              background: exam.admit_card_released ? '#f0fdf4' : '#fffbeb', 
-              border: exam.admit_card_released ? '1px solid #bbf7d0' : '1px solid #fef3c7', 
-              color: exam.admit_card_released ? '#15803d' : '#b45309' 
+            <div style={{
+              fontSize: '0.82rem', padding: '0.5rem 0.8rem', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '0.4rem',
+              background: exam.admit_card_released ? '#f0fdf4' : '#fffbeb',
+              border: exam.admit_card_released ? '1px solid #bbf7d0' : '1px solid #fef3c7',
+              color: exam.admit_card_released ? '#15803d' : '#b45309'
             }}>
               {exam.admit_card_released ? <CheckCircle size={15} /> : <AlertCircle size={15} />}
-              Admit Card: <strong>{exam.admit_card_released ? 'Released & Verified' : 'Pending Release'}</strong>
+              Admit Card: <strong>{exam.admit_card_released ? 'Released & Ready' : 'Pending Release'}</strong>
             </div>
           </div>
         ) : (
           <div className="alert warning" style={{ fontSize: '0.82rem', padding: '0.5rem 0.8rem', background: '#fffbeb', border: '1px solid #fef3c7', color: '#b45309', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <AlertCircle size={15} /> Application form filled. Payment is pending (Form #{exam.form_id}).
+            <AlertCircle size={15} /> Application form filled. Payment pending ({exam.form_code ? `Application No: ${exam.form_code}` : `Form #${exam.form_id}`}).
           </div>
         )
       )}
@@ -196,43 +177,94 @@ export default function Dashboard() {
   const [exams, setExams] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
-  // Carousel State
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const [profileStatus, setProfileStatus] = useState(null);
+  const [showIncompleteModal, setShowIncompleteModal] = useState(false);
 
   useEffect(() => {
-    getExamsApi()
-      .then(data => setExams(data))
+    Promise.all([
+      getExamsApi(),
+      getProfileStatusApi().catch(err => {
+        console.error('Profile status check error:', err);
+        return null;
+      })
+    ])
+      .then(([examsData, statusData]) => {
+        setExams(examsData || []);
+        if (statusData) {
+          setProfileStatus(statusData);
+        }
+      })
       .catch(() => setError('Failed to load exam portal data. Please try again.'))
       .finally(() => setLoading(false));
   }, []);
 
-  const handleNextSlide = () => {
-    setCurrentSlide(prev => (prev + 1) % BANNER_SLIDES.length);
-  };
-
-  const handlePrevSlide = () => {
-    setCurrentSlide(prev => (prev - 1 + BANNER_SLIDES.length) % BANNER_SLIDES.length);
+  const handleApplyClick = (examId) => {
+    if (profileStatus && profileStatus.complete === false) {
+      setShowIncompleteModal(true);
+      return;
+    }
+    navigate(`/exam/${examId}/fill`);
   };
 
   const appliedCount = exams.filter(e => e.apply_completed).length;
-  const pendingCount = exams.filter(e => !e.apply_completed).length;
 
   return (
     <Layout>
-      
-      {/* ── Top News Ticker ───────────────────────────────────── */}
-      <div className="tcet-ticker">
-        <div className="tcet-ticker-content">
-          ★ Main Recognition • Open Problem Statements Available — Register Your Team Now • Build Your Portfolio With Live Projects And Hackathons • Explore Grants, Events & Innovation Opportunities • Final Form Submissions Active ★
-        </div>
-      </div>
+      <div className="container" style={{ padding: '1.5rem 1rem 3rem' }}>
 
-      <div className="container">
-        
+        {/* ── Profile Incompleteness Alert Banner ── */}
+        {profileStatus && profileStatus.complete === false && (
+          <div style={{
+            background: '#fffbeb',
+            border: '1.5px solid #fde68a',
+            borderRadius: '10px',
+            padding: '1.1rem 1.4rem',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            boxShadow: '0 2px 8px rgba(217, 119, 6, 0.08)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', flex: 1, minWidth: '280px' }}>
+              <AlertTriangle size={22} color="#d97706" style={{ marginTop: '0.15rem', flexShrink: 0 }} />
+              <div>
+                <strong style={{ color: '#92400e', fontSize: '0.98rem', display: 'block', marginBottom: '0.2rem' }}>
+                  Incomplete Student Profile – Action Required
+                </strong>
+                <p style={{ margin: 0, fontSize: '0.84rem', color: '#b45309', lineHeight: 1.45 }}>
+                  Please complete your profile details (e.g., {profileStatus.missingLabels?.slice(0, 3).join(', ') || 'Contact Number, Address, ABC ID'}) before applying for exam forms.
+                </p>
+              </div>
+            </div>
+
+            <Link
+              to="/profile"
+              id="banner-complete-profile-btn"
+              className="btn btn-warning"
+              style={{
+                background: '#d97706',
+                color: '#ffffff',
+                border: 'none',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                padding: '0.55rem 1.15rem',
+                borderRadius: '6px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                textDecoration: 'none'
+              }}
+            >
+              Complete Profile Now <ArrowRight size={15} />
+            </Link>
+          </div>
+        )}
+
         {/* ── Main Dashboard Layout ────────────────────────────── */}
         <div className="dashboard-layout-wrapper">
-          
+
           {/* Vertical Side Text */}
           <div className="vertical-sidebar">
             <span className="vertical-text">TCET EXAM PORTAL</span>
@@ -241,17 +273,69 @@ export default function Dashboard() {
 
           {/* Main Feed Content */}
           <div className="main-content-area" style={{ width: '100%' }}>
-            
-            {/* Student Welcome Header */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1.25rem', marginBottom: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h3 style={{ margin: 0, color: '#002147', fontSize: '1.15rem', fontWeight: 800 }}>
-                  Welcome back, {student?.full_name}
-                </h3>
-                <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.83rem', color: 'var(--text-muted)' }}>
-                  Student ID: <strong style={{ color: '#002147' }}>{student?.student_id || 'S1234567890'}</strong> • Roll No: <strong style={{ color: '#2563eb' }}>{student?.roll_no || student?.student_id || '1'}</strong> • Div: <strong style={{ color: '#10b981' }}>{student?.division || 'A'}</strong> • Email: {student?.email} • {student?.program || 'Computer Engineering'} ({student?.current_year ? `Year ${student.current_year}` : 'Year 2'} - Sem {student?.current_semester || 3})
-                </p>
+
+            {/* Student Welcome Header with Avatar Photo */}
+            <div style={{
+              background: '#ffffff',
+              border: '1px solid #e2e8f0',
+              borderRadius: '10px',
+              padding: '1.25rem 1.5rem',
+              marginBottom: '1.25rem',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.03)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '1rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <img
+                  src={getCloudinaryUrl(student?.profile_image)}
+                  alt={student?.full_name || 'Student Photo'}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://res.cloudinary.com/dvix6mmnt/image/upload/v1789934033/download.jpg';
+                  }}
+                  style={{
+                    width: '52px',
+                    height: '52px',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    border: '2px solid #002147',
+                    backgroundColor: '#f8fafc',
+                    flexShrink: 0
+                  }}
+                />
+                <div>
+                  <h3 style={{ margin: 0, color: '#002147', fontSize: '1.18rem', fontWeight: 800 }}>
+                    Welcome back, {student?.full_name}
+                  </h3>
+                  <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.83rem', color: 'var(--text-muted)' }}>
+                    Student ID: <strong style={{ color: '#002147' }}>{student?.student_id || 'S1234567890'}</strong> • Roll No: <strong style={{ color: '#2563eb' }}>{student?.roll_no || student?.student_id || '1'}</strong> • Div: <strong style={{ color: '#10b981' }}>{student?.division || 'A'}</strong> • Email: {student?.email} • {student?.program || student?.department || 'Engineering'} ({student?.current_year ? `Year ${student.current_year}` : 'Year 2'} - Sem {student?.current_semester || 3})
+                  </p>
+                </div>
               </div>
+
+              <Link
+                to="/profile"
+                id="edit-profile-dashboard-btn"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  fontSize: '0.84rem',
+                  fontWeight: 700,
+                  color: '#2563eb',
+                  textDecoration: 'none',
+                  padding: '0.4rem 0.8rem',
+                  borderRadius: '6px',
+                  background: '#eff6ff',
+                  border: '1px solid #bfdbfe',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <User size={14} /> My Profile
+              </Link>
             </div>
 
             {/* Exam Portal Section */}
@@ -283,7 +367,7 @@ export default function Dashboard() {
 
               {!loading && !error && exams.length === 0 && (
                 <div style={{ textAlign: 'center', padding: '2.5rem 1rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>
+                  <div style={{ display: 'center', justifyContent: 'center', marginBottom: '0.5rem', color: 'var(--text-muted)' }}>
                     <Inbox size={40} />
                   </div>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
@@ -298,7 +382,7 @@ export default function Dashboard() {
                     <ExamCard
                       key={exam.exam_id}
                       exam={exam}
-                      onFillForm={(id) => navigate(`/exam/${id}/fill`)}
+                      onFillForm={handleApplyClick}
                     />
                   ))}
                 </div>
@@ -310,6 +394,128 @@ export default function Dashboard() {
         </div>
 
       </div>
+
+      {/* ── Incomplete Profile Blocking Modal ───────────────────────── */}
+      {showIncompleteModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 33, 71, 0.65)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem',
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <div style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            maxWidth: '520px',
+            width: '100%',
+            overflow: 'hidden',
+            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.2)',
+            border: '1.5px solid #fde68a'
+          }}>
+            <div style={{
+              background: '#fffbeb',
+              padding: '1.5rem',
+              borderBottom: '1px solid #fef3c7',
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'space-between',
+              gap: '1rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '44px',
+                  height: '44px',
+                  borderRadius: '50%',
+                  background: '#fef3c7',
+                  color: '#d97706',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <ShieldAlert size={24} />
+                </div>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#92400e', fontWeight: 800 }}>
+                    Profile Completion Required
+                  </h3>
+                  <span style={{ fontSize: '0.8rem', color: '#b45309' }}>
+                    Exam Application Gate Enforced
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowIncompleteModal(false)}
+                style={{ background: 'none', border: 'none', color: '#92400e', cursor: 'pointer', padding: '0.2rem' }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: '1.5rem' }}>
+              <p style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: '#334155', lineHeight: 1.5 }}>
+                You cannot apply for exam forms until your student profile details are fully completed. The following details are missing from your record:
+              </p>
+
+              {profileStatus?.missingLabels && (
+                <div style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px',
+                  padding: '0.85rem 1rem',
+                  marginBottom: '1.25rem'
+                }}>
+                  <ul style={{ margin: 0, paddingLeft: '1.25rem', color: '#dc2626', fontSize: '0.85rem', fontWeight: 600 }}>
+                    {profileStatus.missingLabels.map((item, idx) => (
+                      <li key={idx} style={{ marginBottom: '0.25rem' }}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowIncompleteModal(false)}
+                  className="btn btn-ghost"
+                  style={{ fontWeight: 600, fontSize: '0.88rem' }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  id="modal-complete-profile-btn"
+                  onClick={() => {
+                    setShowIncompleteModal(false);
+                    navigate('/profile');
+                  }}
+                  className="btn btn-primary"
+                  style={{
+                    background: '#002147',
+                    fontWeight: 700,
+                    fontSize: '0.88rem',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.6rem 1.25rem'
+                  }}
+                >
+                  Complete Profile Details <ArrowRight size={15} />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </Layout>
   );

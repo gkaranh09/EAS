@@ -3,6 +3,9 @@
 -- ============================================================
 
 -- Drop tables if they already exist (for clean re-runs)
+DROP TABLE IF EXISTS student_hold_list CASCADE;
+DROP TABLE IF EXISTS student_failed_records CASCADE;
+DROP TABLE IF EXISTS exam_references CASCADE;
 DROP TABLE IF EXISTS template_group_subject CASCADE;
 DROP TABLE IF EXISTS template_subject_group CASCADE;
 DROP TABLE IF EXISTS semester_template CASCADE;
@@ -56,12 +59,13 @@ CREATE TABLE student (
   category            VARCHAR(50) DEFAULT 'open',
   student_type        VARCHAR(50) DEFAULT 'student',
   pwd                 BOOLEAN DEFAULT false,
-  abc_id              VARCHAR(12) DEFAULT '000000000000',
+  abc_id              VARCHAR(12) UNIQUE NOT NULL,
   admission_year      INT,
-  current_year        VARCHAR(50) DEFAULT 'SE',
+  current_year        VARCHAR(50) DEFAULT '2',
   current_semester    INT DEFAULT 3,
   roll_no             VARCHAR(50),
-  division            VARCHAR(10) DEFAULT 'A'
+  division            VARCHAR(10) DEFAULT 'A',
+  profile_image       TEXT DEFAULT 'v1789934033/download.jpg'
 );
 
 -- ---------------------------------------------------------------
@@ -96,10 +100,14 @@ CREATE TABLE subject (
   subject_code  VARCHAR(50) NOT NULL UNIQUE,
   subject_name  VARCHAR(200) NOT NULL,
   department_id INT REFERENCES department(department_id) ON DELETE CASCADE,
-  theory        INT DEFAULT 0,
+  ise           INT DEFAULT 0,
+  ie            INT DEFAULT 0,
+  ese           INT DEFAULT 0,
   or_pr         INT DEFAULT 0,
-  term_work     INT DEFAULT 0,
-  credit        INT DEFAULT 0,
+  tw            INT DEFAULT 0,
+  theory_credit INT DEFAULT 0,
+  orprtw_credit INT DEFAULT 0,
+  total_credit  INT DEFAULT 0,
   scheme_detail VARCHAR(150) DEFAULT 'CBCGS-HME 2023'
 );
 
@@ -111,10 +119,12 @@ CREATE TABLE exam (
   exam_code     VARCHAR(50) NOT NULL UNIQUE,
   exam_name     VARCHAR(200) NOT NULL,
   from_date     DATE NOT NULL,
-  deadline_date DATE NOT NULL,
-  late_deadline DATE NOT NULL,
-  form_fees     INT DEFAULT 0,
-  late_fees     INT DEFAULT 500,
+  deadline_date  DATE NOT NULL,
+  late_deadline1 DATE NOT NULL,
+  late_deadline2 DATE NOT NULL,
+  form_fees      INT DEFAULT 0,
+  late_fees1     INT DEFAULT 100,
+  late_fees2     INT DEFAULT 500,
   exam_type     VARCHAR(50) NOT NULL,  -- 'regular' | 'ATKT'
   created_by    VARCHAR(100) DEFAULT 'admin',
   is_active     BOOLEAN DEFAULT true
@@ -137,9 +147,14 @@ CREATE TABLE exam_form (
 -- 5. EXAM SUBJECT  (which subjects the student selected)
 -- ---------------------------------------------------------------
 CREATE TABLE exam_subject (
-  id          SERIAL PRIMARY KEY,
-  form_id     INT REFERENCES exam_form(form_id)  ON DELETE CASCADE,
-  subject_id  INT REFERENCES subject(subject_id) ON DELETE CASCADE
+  id              SERIAL PRIMARY KEY,
+  form_id         INT REFERENCES exam_form(form_id) ON DELETE CASCADE,
+  subject_id      INT REFERENCES subject(subject_id) ON DELETE CASCADE,
+  attempt_ise     BOOLEAN DEFAULT false,
+  attempt_theory  BOOLEAN DEFAULT false,
+  attempt_or_pr   BOOLEAN DEFAULT false,
+  attempt_tw      BOOLEAN DEFAULT false,
+  attempt_ie      BOOLEAN DEFAULT false
 );
 
 -- ---------------------------------------------------------------
@@ -203,4 +218,45 @@ CREATE TABLE template_group_subject (
   subject_id     INT REFERENCES subject(subject_id) ON DELETE CASCADE,
   UNIQUE(group_id, subject_id)
 );
+
+-- ---------------------------------------------------------------
+-- 11. EXAM REFERENCES (Supp/ATKT → source exams for eligibility)
+-- ---------------------------------------------------------------
+CREATE TABLE exam_references (
+  id                 SERIAL PRIMARY KEY,
+  exam_id            INT REFERENCES exam(exam_id) ON DELETE CASCADE,
+  referenced_exam_id INT REFERENCES exam(exam_id) ON DELETE CASCADE,
+  UNIQUE(exam_id, referenced_exam_id)
+);
+
+-- ---------------------------------------------------------------
+-- 12. STUDENT FAILED RECORDS (eligibility list per source exam)
+-- ---------------------------------------------------------------
+CREATE TABLE student_failed_records (
+  id         SERIAL PRIMARY KEY,
+  exam_id    INT REFERENCES exam(exam_id) ON DELETE CASCADE,
+  student_id INT REFERENCES student(id)   ON DELETE CASCADE,
+  abc_id     VARCHAR(12),
+  added_by   INT REFERENCES employee(id)  ON DELETE SET NULL,
+  added_at   TIMESTAMP DEFAULT NOW(),
+  UNIQUE(exam_id, student_id)
+);
+
+-- ---------------------------------------------------------------
+-- 13. STUDENT HOLD LIST (Restricted students blocked from all exams)
+-- ---------------------------------------------------------------
+CREATE TABLE student_hold_list (
+  id            SERIAL PRIMARY KEY,
+  student_id    INT REFERENCES student(id) ON DELETE CASCADE,
+  abc_id        VARCHAR(12),
+  restricted    BOOLEAN DEFAULT true,
+  remark        TEXT DEFAULT 'Others',
+  added_by      INT REFERENCES employee(id) ON DELETE SET NULL,
+  added_at      TIMESTAMP DEFAULT NOW(),
+  last_updated  TIMESTAMP DEFAULT NOW(),
+  updated_by    INT REFERENCES employee(id) ON DELETE SET NULL,
+  UNIQUE(student_id)
+);
+
+
 

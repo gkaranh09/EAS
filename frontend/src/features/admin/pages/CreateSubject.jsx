@@ -4,7 +4,7 @@ import { useAuth } from '../../../context/AuthContext.jsx';
 import Layout from '../../../layouts/Layout.jsx';
 import { createAdminSubjectApi } from '../api/adminApi';
 import { BookOpen, AlertCircle, CheckCircle } from 'lucide-react';
-import axios from 'axios';
+import { DepartmentSelect } from '../../../components/common/LookupSelect';
 
 export default function CreateSubject() {
   const navigate = useNavigate();
@@ -17,10 +17,13 @@ export default function CreateSubject() {
     subject_code: '',
     subject_name: '',
     department_id: '',
-    theory: 60,
+    ise: 20,
+    ie: 20,
+    ese: 60,
     or_pr: 25,
-    term_work: 25,
-    credit: 4,
+    tw: 25,
+    theory_credit: 3,
+    orprtw_credit: 1,
     scheme_detail: 'CBCGS-HME 2023'
   });
 
@@ -66,16 +69,20 @@ export default function CreateSubject() {
     setSuccess(false);
 
     try {
-      await createAdminSubjectApi(formData);
+      const computedTotalCredit = parseInt(formData.theory_credit || 0) + parseInt(formData.orprtw_credit || 0);
+      await createAdminSubjectApi({ ...formData, total_credit: computedTotalCredit });
       setSuccess(true);
       setFormData(prev => ({
         subject_code: '',
         subject_name: '',
         department_id: prev.department_id || (departments.length > 0 ? String(departments[0].department_id) : '1'),
-        theory: 60,
+        ise: 20,
+        ie: 20,
+        ese: 60,
         or_pr: 25,
-        term_work: 25,
-        credit: 4,
+        tw: 25,
+        theory_credit: 3,
+        orprtw_credit: 1,
         scheme_detail: 'CBCGS-HME 2023'
       }));
     } catch (err) {
@@ -142,23 +149,11 @@ export default function CreateSubject() {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
             <div>
               <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Offering Department</label>
-              <select
+              <DepartmentSelect
                 name="department_id"
                 value={formData.department_id}
                 onChange={handleChange}
-                disabled={loadingDepts}
-                style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px', background: 'white' }}
-              >
-                {loadingDepts ? (
-                  <option value="">Loading departments from database...</option>
-                ) : (
-                  departments.map(dept => (
-                    <option key={dept.department_id} value={dept.department_id}>
-                      {dept.department_name} ({dept.department_code})
-                    </option>
-                  ))
-                )}
-              </select>
+              />
             </div>
 
             <div>
@@ -175,58 +170,45 @@ export default function CreateSubject() {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '1rem', marginBottom: '2.5rem' }}>
+          <h3 style={{ color: '#002147', marginTop: '1rem', marginBottom: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>Exam Components (Max Marks)</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
             <div>
-              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Theory Marks</label>
-              <input
-                type="number"
-                name="theory"
-                value={formData.theory}
-                onChange={handleChange}
-                min="0"
-                required
-                style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
-              />
-              <span style={{ fontSize: '0.75rem', color: '#64748b' }}>0 = No written exam</span>
+              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>ISE</label>
+              <input type="number" name="ise" value={formData.ise} onChange={handleChange} min="0" required style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
             </div>
-
             <div>
-              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Oral / Practical</label>
-              <input
-                type="number"
-                name="or_pr"
-                value={formData.or_pr}
-                onChange={handleChange}
-                min="0"
-                required
-                style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
-              />
+              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>IE</label>
+              <input type="number" name="ie" value={formData.ie} onChange={handleChange} min="0" required style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
             </div>
-
             <div>
-              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Term Work</label>
-              <input
-                type="number"
-                name="term_work"
-                value={formData.term_work}
-                onChange={handleChange}
-                min="0"
-                required
-                style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
-              />
+              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Theory (ESE)</label>
+              <input type="number" name="ese" value={formData.ese} onChange={handleChange} min="0" required style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
             </div>
-
             <div>
-              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Credits</label>
-              <input
-                type="number"
-                name="credit"
-                value={formData.credit}
-                onChange={handleChange}
-                min="0"
-                required
-                style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
-              />
+              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>OR-PR</label>
+              <input type="number" name="or_pr" value={formData.or_pr} onChange={handleChange} min="0" required style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Term Work (TW)</label>
+              <input type="number" name="tw" value={formData.tw} onChange={handleChange} min="0" required style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
+            </div>
+          </div>
+
+          <h3 style={{ color: '#002147', marginTop: '1rem', marginBottom: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>Credit Distribution</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', marginBottom: '2.5rem', background: '#f8fafc', padding: '1.5rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+            <div>
+              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Theory Credit</label>
+              <input type="number" name="theory_credit" value={formData.theory_credit} onChange={handleChange} min="0" required style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>OR-PR & TW Credit</label>
+              <input type="number" name="orprtw_credit" value={formData.orprtw_credit} onChange={handleChange} min="0" required style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Total Credit</label>
+              <div style={{ width: '100%', padding: '0.7rem 0.9rem', background: '#e2e8f0', color: '#334155', borderRadius: '4px', border: '1px solid #cbd5e1', fontWeight: 'bold' }}>
+                {parseInt(formData.theory_credit || 0) + parseInt(formData.orprtw_credit || 0)}
+              </div>
             </div>
           </div>
 

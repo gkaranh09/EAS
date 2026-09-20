@@ -69,7 +69,14 @@ const toggleActive = async (id, activeStatus) => {
   }
 
   const result = await pool.query(updateQuery, queryParams);
-  return result.rows[0] || null;
+  const updatedEmp = result.rows[0] || null;
+
+  if (updatedEmp && updatedEmp.active === false) {
+    await pool.query('UPDATE employee SET active_session_id = NULL WHERE id = $1', [id]);
+    await pool.query('UPDATE user_sessions SET is_active = false WHERE user_type = $1 AND user_id = $2', ['employee', id]);
+  }
+
+  return updatedEmp;
 };
 
 module.exports = {

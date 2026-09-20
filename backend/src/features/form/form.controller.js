@@ -7,19 +7,27 @@ const submitForm = async (req, res) => {
     res.status(201).json({
       message: 'Exam form submitted successfully',
       form_id: result.form_id,
-      payment_status: result.payment_status
+      form_code: result.form_code,
+      payment_status: result.payment_status,
+      amount_due: result.amount_due
     });
   } catch (err) {
+    if (err.statusCode) {
+      return res.status(err.statusCode).json({ message: err.message, form_id: err.form_id, form_code: err.form_code });
+    }
     if (err.message.includes('expired')) {
       return res.status(401).json({ message: err.message });
     }
+    if (err.message.includes('blocked') || err.message.includes('eligible') || err.message.includes('denied')) {
+      return res.status(403).json({ message: err.message });
+    }
     if (err.message === 'You have already applied for this exam') {
-      return res.status(409).json({ message: err.message, form_id: err.form_id });
+      return res.status(409).json({ message: err.message, form_id: err.form_id, form_code: err.form_code });
     }
     if (err.message === 'Exam not found') {
       return res.status(404).json({ message: err.message });
     }
-    if (err.message.includes('required')) {
+    if (err.message.includes('required') || err.message.includes('deadline has passed') || err.message.includes('inactive')) {
       return res.status(400).json({ message: err.message });
     }
     console.error('Form submit error:', err);
@@ -42,12 +50,13 @@ const getFormPdf = async (req, res) => {
     const { formId } = req.params;
     const { form, subjects } = await formService.getFormPdfData(formId, req.user);
 
+    const filename = form.form_code ? `ExamForm_${form.form_code}.pdf` : `ExamForm_${formId}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="ExamForm_${formId}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     
     generatePdf(form, subjects, res);
   } catch (err) {
-    if (err.message === 'Access denied') return res.status(403).json({ message: err.message });
+    if (err.message.includes('Access denied')) return res.status(403).json({ message: err.message });
     if (err.message === 'Form not found') return res.status(404).json({ message: err.message });
     
     console.error('PDF generation error:', err);
@@ -60,13 +69,14 @@ const getAdmitCardPdf = async (req, res) => {
     const { formId } = req.params;
     const { form, schedules } = await formService.getAdmitCardPdfData(formId, req.user);
 
+    const filename = form.admit_card_number ? `AdmitCard_${form.admit_card_number}.pdf` : `AdmitCard_${formId}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="AdmitCard_${formId}.pdf"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
     generateAdmitCardPdf(form, schedules, res);
   } catch (err) {
-    if (err.message === 'Access denied') return res.status(403).json({ message: err.message });
-    if (err.message === 'Admit Card has not been released yet.') return res.status(400).json({ message: err.message });
+    if (err.message.includes('Access denied') || err.message.includes('blocked')) return res.status(403).json({ message: err.message });
+    if (err.message.includes('released') || err.message.includes('approved')) return res.status(400).json({ message: err.message });
     if (err.message === 'Form not found') return res.status(404).json({ message: err.message });
 
     console.error('Admit Card PDF error:', err);
@@ -80,7 +90,9 @@ const createOrder = async (req, res) => {
     const orderData = await formService.createRazorpayOrder(form_id, req.user.id);
     res.json(orderData);
   } catch (err) {
-    if (err.message.includes('required')) return res.status(400).json({ message: err.message });
+    if (err.message.includes('required') || err.message.includes('already paid') || err.message.includes('deadline has passed')) {
+      return res.status(400).json({ message: err.message });
+    }
     if (err.message.includes('not found') || err.message.includes('denied')) return res.status(404).json({ message: err.message });
 
     console.error('Create Razorpay order error:', err);
@@ -101,6 +113,7 @@ const verifyPayment = async (req, res) => {
     if (err.message.includes('required')) return res.status(400).json({ message: err.message });
     if (err.message.includes('signature')) return res.status(400).json({ message: 'Signature verification failed' });
     if (err.message.includes('not found') || err.message.includes('denied')) return res.status(404).json({ message: err.message });
+    if (err.message.includes('deadline has passed')) return res.status(400).json({ message: err.message });
 
     console.error('Verify payment error:', err);
     res.status(500).json({ message: 'Payment verification failed' });

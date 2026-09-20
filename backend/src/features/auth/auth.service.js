@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const authRepository = require('./auth.repository');
+const sessionRepository = require('./session.repository');
 
 const EMAIL_REGEX = /^\d{10}@tcetmumbai\.in$/i;
 
@@ -8,7 +9,7 @@ const generateToken = (payload) => {
   return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
 };
 
-const registerStudent = async (data) => {
+const registerStudent = async (data, meta = {}) => {
   const {
     surname,
     first_name,
@@ -23,7 +24,8 @@ const registerStudent = async (data) => {
     program,
     admission_year,
     current_year,
-    current_semester
+    current_semester,
+    abc_id
   } = data;
 
   if (!email || !password) {
@@ -38,6 +40,10 @@ const registerStudent = async (data) => {
   const exists = await authRepository.checkStudentEmailExists(cleanEmail);
   if (exists) {
     throw new Error('Email already registered');
+  }
+
+  if (!abc_id || abc_id.trim().length !== 12) {
+    throw new Error('ABC ID is required and must be exactly 12 digits');
   }
 
   const digits = cleanEmail.split('@')[0];
@@ -70,7 +76,7 @@ const registerStudent = async (data) => {
 
   const parsedAdmissionYear = admission_year ? parseInt(admission_year, 10) : new Date().getFullYear();
   const parsedSemester = current_semester ? parseInt(current_semester, 10) : 1;
-  const parsedCurrentYear = current_year || (parsedSemester <= 2 ? 'FE' : parsedSemester <= 4 ? 'SE' : parsedSemester <= 6 ? 'TE' : 'BE');
+  const parsedCurrentYear = current_year || (parsedSemester <= 2 ? '1' : parsedSemester <= 4 ? '2' : parsedSemester <= 6 ? '3' : '4');
 
   const student = await authRepository.createStudent({
     student_id,
@@ -85,7 +91,16 @@ const registerStudent = async (data) => {
     program_id: targetProgId,
     admission_year: parsedAdmissionYear,
     current_year: parsedCurrentYear,
-    current_semester: parsedSemester
+    current_semester: parsedSemester,
+    abc_id: abc_id.trim()
+  });
+
+  // Start single active session for student
+  const { sessionId } = await sessionRepository.startUserSession({
+    userType: 'student',
+    userId: student.id,
+    userAgent: meta.userAgent,
+    ipAddress: meta.ipAddress
   });
 
   const token = generateToken({
@@ -96,14 +111,16 @@ const registerStudent = async (data) => {
     department: student.department,
     program: student.program,
     department_id: student.department_id,
-    program_id: student.program_id
+    program_id: student.program_id,
+    user_type: 'student',
+    session_id: sessionId
   });
 
   const { password_hash: _, ...studentData } = student;
   return { token, student: studentData };
 };
 
-const loginStudent = async (email, password) => {
+const loginStudent = async (email, password, meta = {}) => {
   if (!email || !password) {
     throw new Error('Email and password are required');
   }
@@ -120,6 +137,14 @@ const loginStudent = async (email, password) => {
     throw new Error('Invalid email or password');
   }
 
+  // Start single active session for student (displaces any prior session)
+  const { sessionId } = await sessionRepository.startUserSession({
+    userType: 'student',
+    userId: student.id,
+    userAgent: meta.userAgent,
+    ipAddress: meta.ipAddress
+  });
+
   const token = generateToken({
     id: student.id,
     student_id: student.student_id,
@@ -128,14 +153,16 @@ const loginStudent = async (email, password) => {
     department: student.department,
     program: student.program,
     department_id: student.department_id,
-    program_id: student.program_id
+    program_id: student.program_id,
+    user_type: 'student',
+    session_id: sessionId
   });
 
   const { password_hash, ...studentData } = student;
   return { token, student: studentData };
 };
 
-const loginEmployee = async (email, password) => {
+const loginEmployee = async (email, password, meta = {}) => {
   if (!email || !password) {
     throw new Error('Email and password are required');
   }
@@ -156,6 +183,14 @@ const loginEmployee = async (email, password) => {
     throw new Error('Invalid email or password');
   }
 
+  // Start single active session for employee (displaces any prior session)
+  const { sessionId } = await sessionRepository.startUserSession({
+    userType: 'employee',
+    userId: empUser.id,
+    userAgent: meta.userAgent,
+    ipAddress: meta.ipAddress
+  });
+
   const token = generateToken({
     id: empUser.id,
     email: empUser.email,
@@ -168,7 +203,9 @@ const loginEmployee = async (email, password) => {
     faculty_id: empUser.employee_id,
     active: empUser.active,
     is_faculty: true,
-    is_employee: true
+    is_employee: true,
+    user_type: 'employee',
+    session_id: sessionId
   });
 
   const { password_hash, ...empData } = empUser;
@@ -183,8 +220,13 @@ const loginEmployee = async (email, password) => {
   return { token, student: userObj };
 };
 
+const logoutUser = async (userType, userId, sessionId) => {
+  return await sessionRepository.terminateSession(userType, userId, sessionId);
+};
+
 module.exports = {
   registerStudent,
   loginStudent,
-  loginEmployee
+  loginEmployee,
+  logoutUser
 };

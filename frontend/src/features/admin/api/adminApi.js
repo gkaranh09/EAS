@@ -30,6 +30,8 @@ export const getAdminSchedulesApi = async (exam_id, branch, semester) => {
   return (await axios.get('/api/admin/schedules', { params })).data;
 };
 export const createAdminScheduleApi = async (exam_id, schedules) => (await axios.post('/api/admin/schedules', { exam_id, schedules })).data;
+export const checkScheduleHealthApi = async (examId) => (await axios.get(`/api/admin/exams/${examId}/schedule-health`)).data;
+
 
 // =======================
 // FORMS & ADMIT CARDS
@@ -65,3 +67,26 @@ export const updateTemplateApi = async (id, data) =>
 export const deleteTemplateApi = async (id) =>
   (await axios.delete(`/api/admin/semester-templates/${id}`)).data;
 
+// =======================
+// FAILED RECORDS
+// =======================
+export const getFailedRecordsApi = async (exam_id) =>
+  (await axios.get('/api/admin/failed-records', { params: { exam_id } })).data;
+export const addFailedRecordsApi = async (data) =>
+  (await axios.post('/api/admin/failed-records', data)).data;
+export const deleteFailedRecordApi = async (id) =>
+  (await axios.delete(`/api/admin/failed-records/${id}`)).data;
+
+// =======================
+// STUDENT HOLD LIST
+// =======================
+export const getHoldListApi = async (params = {}) =>
+  (await axios.get('/api/admin/hold-list', { params })).data;
+export const addToHoldListApi = async (data) =>
+  (await axios.post('/api/admin/hold-list/add', data)).data;
+export const updateHoldStatusApi = async (id, data) =>
+  (await axios.patch(`/api/admin/hold-list/${id}/status`, data)).data;
+export const bulkUnrestrictApi = async (ids, remark) =>
+  (await axios.patch('/api/admin/hold-list/bulk-unrestrict', { ids, remark })).data;
+export const deleteHoldRecordApi = async (id) =>
+  (await axios.delete(`/api/admin/hold-list/${id}`)).data;

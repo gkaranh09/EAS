@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { MedalIcon, GlobeIcon, DocIcon } from '../components/Logos.jsx';
 import { User, ChevronDown, Menu } from 'lucide-react';
 import tcetLogoImg from '../assets/images/tcetlogo.png';
+import { getCloudinaryUrl } from '../utils/imageUtils';
 
 export default function Layout({ children }) {
   const { student, logout, token } = useAuth();
@@ -131,9 +132,21 @@ export default function Layout({ children }) {
                   className="tcet-profile-pill"
                   onClick={() => setShowDropdown(!showDropdown)}
                   id="user-profile-menu-btn"
-                  style={{ border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                  style={{ border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.3rem 0.6rem' }}
                 >
-                  <User size={14} />
+                  {student.profile_image && !student.is_faculty ? (
+                    <img
+                      src={getCloudinaryUrl(student.profile_image)}
+                      alt="Avatar"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = 'https://res.cloudinary.com/dvix6mmnt/image/upload/v1789934033/download.jpg';
+                      }}
+                      style={{ width: '22px', height: '22px', borderRadius: '50%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <User size={14} />
+                  )}
                   <span>{formatName(student.full_name)}</span>
                   <ChevronDown size={10} />
                 </button>

@@ -68,4 +68,17 @@ export const updateStudentProfileApi = async (profileData) => {
   return data;
 };
 
+export const uploadStudentPhotoApi = async (imageSource) => {
+  const { data } = await axios.post('/api/student/upload-photo', { image: imageSource });
+  return data;
+};
 
+export const getProfileStatusApi = async () => {
+  const { data } = await axios.get('/api/student/profile-status');
+  return data;
+};
+
+export const checkHoldStatusApi = async () => {
+  const { data } = await axios.get('/api/exams/hold-check');
+  return data;
+};

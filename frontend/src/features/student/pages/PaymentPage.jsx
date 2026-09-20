@@ -76,14 +76,31 @@ export default function PaymentPage() {
 
           let late = 0;
           let isLate = false;
+          let lateLabel = 'Late Fee';
           
           const today = new Date();
+          
           const deadline = new Date(currentExam.deadline_date);
           deadline.setHours(23, 59, 59, 999);
+          
+          const ld1 = new Date(currentExam.late_deadline1);
+          ld1.setHours(23, 59, 59, 999);
+          
+          const ld2 = new Date(currentExam.late_deadline2);
+          ld2.setHours(23, 59, 59, 999);
 
-          if (today > deadline) {
-            late = currentExam.late_fees || 500;
+          if (today > ld2) {
+            setError('The final deadline for filling this exam form has passed.');
+            setLoading(false);
+            return;
+          } else if (today > ld1) {
+            late = currentExam.late_fees2 || 500;
             isLate = true;
+            lateLabel = 'Late Fee 2';
+          } else if (today > deadline) {
+            late = currentExam.late_fees1 || 100;
+            isLate = true;
+            lateLabel = 'Late Fee 1';
           }
 
           setFeeBreakdown({

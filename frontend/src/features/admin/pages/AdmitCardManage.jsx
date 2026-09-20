@@ -2,9 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import Layout from '../../../layouts/Layout.jsx';
-import { getAdminExamsApi, getAdminFormsApi, admitCardFormsApi, downloadPdfApi, downloadAdmitCardPdfApi } from '../api/adminApi';
-import { CreditCard, AlertCircle, CheckCircle, Search, Filter, Check, X, Inbox, Clock, Send, Eye, Download, FileCheck, RotateCcw, Shield } from 'lucide-react';
-
+import { 
+  getAdminExamsApi, 
+  getAdminFormsApi, 
+  admitCardFormsApi, 
+  downloadPdfApi, 
+  downloadAdmitCardPdfApi,
+  checkScheduleHealthApi
+} from '../api/adminApi';
+import { 
+  CreditCard, AlertCircle, CheckCircle, Search, Filter, Check, X, 
+  Inbox, Clock, Send, Eye, Download, FileCheck, RotateCcw, Shield, 
+  Activity, Copy, CheckCheck, ExternalLink, AlertTriangle 
+} from 'lucide-react';
 import axios from 'axios';
 
 export default function AdmitCardManage() {
@@ -33,6 +43,12 @@ export default function AdmitCardManage() {
   // Alert States
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Schedule Health Modal State
+  const [healthModalOpen, setHealthModalOpen] = useState(false);
+  const [healthLoading, setHealthLoading] = useState(false);
+  const [healthData, setHealthData] = useState(null);
+  const [copiedCodes, setCopiedCodes] = useState(false);
 
   // 1. Fetch available exams and programs on mount
   useEffect(() => {
@@ -79,6 +95,38 @@ export default function AdmitCardManage() {
   useEffect(() => {
     fetchForms();
   }, [activeTab, selectedExamId, selectedBranch, search, token]);
+
+  // Handle Schedule Health Check
+  const handleCheckScheduleHealth = async () => {
+    if (!selectedExamId) {
+      setError('Please select an exam first to inspect its timetable schedule health.');
+      return;
+    }
+
+    setHealthLoading(true);
+    setError('');
+    setHealthData(null);
+    setCopiedCodes(false);
+    setHealthModalOpen(true);
+
+    try {
+      const data = await checkScheduleHealthApi(selectedExamId);
+      setHealthData(data);
+    } catch (err) {
+      console.error('Schedule health error:', err);
+      setError(err.response?.data?.message || 'Failed to check schedule health for the selected exam.');
+      setHealthModalOpen(false);
+    } finally {
+      setHealthLoading(false);
+    }
+  };
+
+  const handleCopyMissingCodes = () => {
+    if (!healthData?.missing_codes_text) return;
+    navigator.clipboard.writeText(healthData.missing_codes_text);
+    setCopiedCodes(true);
+    setTimeout(() => setCopiedCodes(false), 2500);
+  };
 
   // Handle Select All Checkbox
   const handleSelectAll = (e) => {
@@ -160,10 +208,10 @@ export default function AdmitCardManage() {
         form_ids: [formId],
         set_released: setReleasedTarget
       });
-      setSuccessMsg(`Form #${formId} admit card ${setReleasedTarget ? 'released' : 'revoked'}.`);
+      setSuccessMsg(`Admit card ${setReleasedTarget ? 'released' : 'revoked'} successfully.`);
       fetchForms();
     } catch (err) {
-      setError('Failed to update admit card status.');
+      setError(err.response?.data?.message || 'Failed to update admit card status.');
     } finally {
       setActionLoading(false);
     }
@@ -204,29 +252,32 @@ export default function AdmitCardManage() {
   };
 
   const isAllSelected = forms.length > 0 && selectedFormIds.length === forms.length;
+  const currentExamObj = exams.find(e => String(e.exam_id) === String(selectedExamId));
 
   return (
     <Layout>
       <div className="admin-container" style={{ paddingBottom: '4rem', paddingTop: '2rem' }}>
         
         {/* Header Title Section */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h2 style={{ color: '#002147', fontWeight: 800, margin: 0, fontSize: '1.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <FileCheck size={24} /> Admit Card Management
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '0.2rem 0 0 0' }}>
-              Filter approved student forms by Department & Exam to approve and release official Admit Cards.
+              Filter approved student forms by Department & Exam to verify schedule health and release official Admit Cards.
             </p>
           </div>
-          <button 
-            type="button"
-            className="btn btn-outline"
-            onClick={() => navigate('/admin/dashboard')}
-            style={{ borderColor: '#cbd5e1', color: '#002147', fontWeight: 'bold' }}
-          >
-            ← Back to Console
-          </button>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button 
+              type="button"
+              className="btn btn-outline"
+              onClick={() => navigate('/admin/dashboard')}
+              style={{ borderColor: '#cbd5e1', color: '#002147', fontWeight: 'bold' }}
+            >
+              ← Back to Console
+            </button>
+          </div>
         </div>
 
         {/* Tab Segment Controls */}
@@ -288,7 +339,7 @@ export default function AdmitCardManage() {
 
         {/* Filters Panel */}
         <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)', marginBottom: '1.5rem' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem', alignItems: 'end' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: '1.25rem', alignItems: 'end' }}>
             
             {/* Exam Filter */}
             <div>
@@ -337,26 +388,49 @@ export default function AdmitCardManage() {
             {/* Search Filter */}
             <div>
               <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.4rem', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Search Student
+                Search Student / Form Code
               </label>
               <input
                 type="text"
-                placeholder="Name or email..."
+                placeholder="Name, email, ef12345678..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 style={{ width: '100%', padding: '0.6rem 0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.9rem' }}
               />
             </div>
 
-            {/* Clear Button */}
-            <div>
+            {/* Action Buttons: Check Schedule Health & Clear */}
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button 
+                type="button"
+                className="btn btn-primary"
+                onClick={handleCheckScheduleHealth}
+                disabled={!selectedExamId || healthLoading}
+                title={!selectedExamId ? 'Select an exam to check schedule health' : 'Scan timetable schedules for all applied subjects'}
+                style={{
+                  height: '38px', 
+                  borderRadius: '4px', 
+                  flex: 1, 
+                  fontWeight: 700, 
+                  fontSize: '0.82rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.4rem',
+                  background: selectedExamId ? '#0f766e' : '#94a3b8',
+                  borderColor: selectedExamId ? '#0f766e' : '#94a3b8'
+                }}
+              >
+                <Activity size={15} /> Check Schedule Health
+              </button>
+
               <button 
                 type="button"
                 className="btn btn-outline btn-sm"
                 onClick={() => { setSelectedExamId(''); setSelectedBranch('ALL'); setSearch(''); }}
-                style={{ height: '38px', borderRadius: '4px', width: '100%', borderColor: '#cbd5e1', color: '#002147', fontWeight: 600 }}
+                style={{ height: '38px', borderRadius: '4px', borderColor: '#cbd5e1', color: '#002147', fontWeight: 600 }}
               >
-                Clear Filters
+                Clear
               </button>
             </div>
 
@@ -434,7 +508,7 @@ export default function AdmitCardManage() {
                     style={{ cursor: 'pointer' }}
                   />
                 </th>
-                <th style={{ padding: '1rem', minWidth: '80px' }}>Form ID</th>
+                <th style={{ padding: '1rem', minWidth: '110px' }}>Form Code</th>
                 <th style={{ padding: '1rem', minWidth: '200px' }}>Student Details</th>
                 <th style={{ padding: '1rem', minWidth: '180px' }}>Branch</th>
                 <th style={{ padding: '1rem', minWidth: '80px' }}>Division</th>
@@ -462,6 +536,7 @@ export default function AdmitCardManage() {
               ) : (
                 forms.map(form => {
                   const isChecked = selectedFormIds.includes(form.form_id);
+                  const displayFormCode = form.form_code || `#${form.form_id}`;
                   return (
                     <tr key={form.form_id} style={{ borderBottom: '1px solid #f1f5f9', background: isChecked ? '#f8fafc' : 'transparent', transition: 'background 0.2s' }}>
                       <td style={{ padding: '1rem', textAlign: 'center' }}>
@@ -472,7 +547,20 @@ export default function AdmitCardManage() {
                           style={{ cursor: 'pointer' }}
                         />
                       </td>
-                      <td style={{ padding: '1rem', fontWeight: 'bold', color: '#002147' }}>#{form.form_id}</td>
+                      <td style={{ padding: '1rem' }}>
+                        <span style={{ 
+                          background: '#f1f5f9', 
+                          color: '#002147', 
+                          padding: '0.25rem 0.5rem', 
+                          borderRadius: '4px', 
+                          fontFamily: 'monospace', 
+                          fontWeight: 700, 
+                          fontSize: '0.84rem',
+                          border: '1px solid #e2e8f0'
+                        }}>
+                          {displayFormCode}
+                        </span>
+                      </td>
                       <td style={{ padding: '1rem' }}>
                         <div style={{ fontWeight: 600, color: '#002147' }}>{form.student_name}</div>
                         <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{form.student_email}</div>
@@ -622,6 +710,287 @@ export default function AdmitCardManage() {
             </tbody>
           </table>
         </div>
+
+        {/* ─── SCHEDULE HEALTH VERIFICATION MODAL ───────────────────────── */}
+        {healthModalOpen && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.6)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '1rem'
+          }}>
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '12px',
+              maxWidth: '680px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              border: '1px solid #e2e8f0'
+            }}>
+              
+              {/* Modal Header */}
+              <div style={{
+                padding: '1.25rem 1.5rem',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                background: '#f8fafc',
+                borderTopLeftRadius: '12px',
+                borderTopRightRadius: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <div style={{
+                    background: healthData?.healthy ? '#dcfce7' : '#fef3c7',
+                    color: healthData?.healthy ? '#16a34a' : '#d97706',
+                    padding: '0.5rem',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Activity size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.2rem', color: '#002147', fontWeight: 800 }}>
+                      Timetable Schedule Health
+                    </h3>
+                    <p style={{ margin: '0.15rem 0 0 0', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                      Exam: <strong>{currentExamObj?.exam_name || 'Selected Exam'}</strong> ({currentExamObj?.exam_code})
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setHealthModalOpen(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748b',
+                    cursor: 'pointer',
+                    padding: '0.3rem',
+                    borderRadius: '4px'
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div style={{ padding: '1.5rem' }}>
+                {healthLoading ? (
+                  <div style={{ textAlign: 'center', padding: '3rem' }}>
+                    <div style={{ display: 'inline-block', width: '28px', height: '28px', border: '3px solid #cbd5e1', borderTopColor: '#0f766e', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    <p style={{ marginTop: '0.75rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                      Cross-referencing student applications against exam schedules...
+                    </p>
+                  </div>
+                ) : healthData ? (
+                  <>
+                    {/* Status Banner */}
+                    {healthData.healthy ? (
+                      <div style={{
+                        background: '#f0fdf4',
+                        border: '1px solid #bbf7d0',
+                        borderRadius: '8px',
+                        padding: '1.25rem',
+                        marginBottom: '1.5rem',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '0.75rem'
+                      }}>
+                        <CheckCircle size={24} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <div>
+                          <h4 style={{ margin: 0, color: '#166534', fontSize: '1rem', fontWeight: 700 }}>
+                            Schedule Health: 100% Complete & Ready!
+                          </h4>
+                          <p style={{ margin: '0.3rem 0 0 0', color: '#15803d', fontSize: '0.85rem', lineHeight: 1.4 }}>
+                            All <strong>{healthData.total_applied_subjects}</strong> distinct theory subjects applied by students for this exam have verified dates and timings configured in the timetable. Admit cards can be safely generated and released.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{
+                        background: '#fffbeb',
+                        border: '1px solid #fde68a',
+                        borderRadius: '8px',
+                        padding: '1.25rem',
+                        marginBottom: '1.5rem',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '0.75rem'
+                      }}>
+                        <AlertTriangle size={24} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
+                        <div>
+                          <h4 style={{ margin: 0, color: '#92400e', fontSize: '1rem', fontWeight: 700 }}>
+                            Action Required: {healthData.missing_count} Subject(s) Missing Exam Schedules
+                          </h4>
+                          <p style={{ margin: '0.3rem 0 0 0', color: '#b45309', fontSize: '0.85rem', lineHeight: 1.4 }}>
+                            Students have submitted applications for the subjects listed below, but their exam date or start/end timings have not been scheduled yet.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Stats Pill Summary */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+                      <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Total Applied Subjects</div>
+                        <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#002147' }}>{healthData.total_applied_subjects}</div>
+                      </div>
+                      <div style={{ background: '#f0fdf4', padding: '0.75rem', borderRadius: '6px', border: '1px solid #dcfce7', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#166534', textTransform: 'uppercase', fontWeight: 600 }}>Scheduled</div>
+                        <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#16a34a' }}>{healthData.scheduled_subjects}</div>
+                      </div>
+                      <div style={{ background: healthData.healthy ? '#f8fafc' : '#fef2f2', padding: '0.75rem', borderRadius: '6px', border: healthData.healthy ? '1px solid #e2e8f0' : '1px solid #fee2e2', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.75rem', color: healthData.healthy ? 'var(--text-muted)' : '#991b1b', textTransform: 'uppercase', fontWeight: 600 }}>Unscheduled</div>
+                        <div style={{ fontSize: '1.3rem', fontWeight: 800, color: healthData.healthy ? '#64748b' : '#dc2626' }}>{healthData.missing_count}</div>
+                      </div>
+                    </div>
+
+                    {/* Missing Subjects Table (if any) */}
+                    {!healthData.healthy && healthData.missing_subjects?.length > 0 && (
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                          <h5 style={{ margin: 0, color: '#002147', fontWeight: 700, fontSize: '0.9rem' }}>
+                            Unscheduled Subjects List
+                          </h5>
+                          
+                          <button
+                            type="button"
+                            onClick={handleCopyMissingCodes}
+                            style={{
+                              background: copiedCodes ? '#dcfce7' : '#f1f5f9',
+                              color: copiedCodes ? '#166534' : '#002147',
+                              border: '1px solid #cbd5e1',
+                              padding: '0.35rem 0.75rem',
+                              borderRadius: '4px',
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            {copiedCodes ? <CheckCheck size={14} color="#16a34a" /> : <Copy size={14} />}
+                            {copiedCodes ? 'Codes Copied!' : 'Copy Missing Codes'}
+                          </button>
+                        </div>
+
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden', maxHeight: '220px', overflowY: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
+                            <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#002147' }}>
+                              <tr>
+                                <th style={{ padding: '0.6rem 0.8rem' }}>Subject Code</th>
+                                <th style={{ padding: '0.6rem 0.8rem' }}>Subject Name</th>
+                                <th style={{ padding: '0.6rem 0.8rem' }}>Branch</th>
+                                <th style={{ padding: '0.6rem 0.8rem', textAlign: 'center' }}>Sem</th>
+                                <th style={{ padding: '0.6rem 0.8rem', textAlign: 'right' }}>Students</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {healthData.missing_subjects.map((sub, idx) => (
+                                <tr key={sub.subject_id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                  <td style={{ padding: '0.6rem 0.8rem', fontFamily: 'monospace', fontWeight: 700, color: '#dc2626' }}>
+                                    {sub.subject_code}
+                                  </td>
+                                  <td style={{ padding: '0.6rem 0.8rem', fontWeight: 500, color: '#002147' }}>
+                                    {sub.subject_name}
+                                  </td>
+                                  <td style={{ padding: '0.6rem 0.8rem', color: 'var(--text-muted)' }}>
+                                    {sub.branch}
+                                  </td>
+                                  <td style={{ padding: '0.6rem 0.8rem', textAlign: 'center' }}>
+                                    {sub.semester}
+                                  </td>
+                                  <td style={{ padding: '0.6rem 0.8rem', textAlign: 'right', fontWeight: 700 }}>
+                                    {sub.student_count}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Quick Guidance Card */}
+                        <div style={{ marginTop: '0.8rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px dashed #cbd5e1', fontSize: '0.8rem', color: '#475569', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span>
+                            Tip: Copy the codes above and paste them into the <strong>Schedule Exam</strong> page search bar to configure their timetable.
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/admin/schedule-exam?examId=${selectedExamId}&search=${encodeURIComponent(healthData.missing_codes_text || '')}`)}
+                            style={{
+                              background: '#002147',
+                              color: 'white',
+                              border: 'none',
+                              padding: '0.4rem 0.8rem',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontWeight: 700,
+                              fontSize: '0.78rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              flexShrink: 0
+                            }}
+                          >
+                            <ExternalLink size={13} /> Schedule Missing Subjects
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : null}
+              </div>
+
+              {/* Modal Footer */}
+              <div style={{
+                padding: '1rem 1.5rem',
+                borderTop: '1px solid #e2e8f0',
+                background: '#f8fafc',
+                borderBottomLeftRadius: '12px',
+                borderBottomRightRadius: '12px',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '0.75rem'
+              }}>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setHealthModalOpen(false)}
+                  style={{ fontWeight: 600 }}
+                >
+                  Close
+                </button>
+                {healthData?.healthy && (
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    onClick={() => {
+                      setHealthModalOpen(false);
+                      handleFilterWideAction(true);
+                    }}
+                    style={{ fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+                  >
+                    <CheckCircle size={15} /> Release Admit Cards Now
+                  </button>
+                )}
+              </div>
+
+            </div>
+          </div>
+        )}
 
       </div>
     </Layout>

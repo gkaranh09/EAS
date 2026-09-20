@@ -17,6 +17,8 @@ const ApproveForm = React.lazy(() => import('../features/admin/pages/ApproveForm
 const AdmitCardManage = React.lazy(() => import('../features/admin/pages/AdmitCardManage.jsx'));
 const EmployeeManagement = React.lazy(() => import('../features/admin/pages/EmployeeManagement.jsx'));
 const SemesterTemplateManagement = React.lazy(() => import('../features/admin/pages/SemesterTemplateManagement.jsx'));
+const FailedRecordsManagement = React.lazy(() => import('../features/admin/pages/FailedRecordsManagement.jsx'));
+const HoldListManagement = React.lazy(() => import('../features/admin/pages/HoldListManagement.jsx'));
 const ProfilePage = React.lazy(() => import('../features/student/pages/ProfilePage.jsx'));
 
 // Route guards
@@ -88,6 +90,8 @@ export default function AppRouter() {
         <Route path="/admin/services/count_analysis" element={<AdminProtectedRoute><CountAnalysis /></AdminProtectedRoute>} />
         <Route path="/admin/services/employee_management" element={<HeadOnlyRoute><EmployeeManagement /></HeadOnlyRoute>} />
         <Route path="/admin/services/semester_templates" element={<AdminProtectedRoute><SemesterTemplateManagement /></AdminProtectedRoute>} />
+        <Route path="/admin/services/failed_records" element={<AdminOnlyRoute><FailedRecordsManagement /></AdminOnlyRoute>} />
+        <Route path="/admin/services/hold_list" element={<AdminProtectedRoute><HoldListManagement /></AdminProtectedRoute>} />
         <Route path="/admin/create/exam" element={<AdminOnlyRoute><CreateExam /></AdminOnlyRoute>} />
         <Route path="/admin/create/subject" element={<AdminProtectedRoute><CreateSubject /></AdminProtectedRoute>} />
         <Route path="/admin/create/schedule" element={<AdminOnlyRoute><ScheduleExam /></AdminOnlyRoute>} />

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import Layout from '../../../layouts/Layout.jsx';
 import { getAdminExamsApi, getAdminSchedulesApi, createAdminScheduleApi } from '../api/adminApi';
@@ -8,6 +8,7 @@ import axios from 'axios';
 
 export default function ScheduleExam() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { token } = useAuth();
 
   // Exams
@@ -43,8 +44,10 @@ export default function ScheduleExam() {
         const data = await getAdminExamsApi();
         const activeExams = Array.isArray(data) ? data.filter(e => e.is_active !== false) : [];
         setExams(activeExams);
-        if (activeExams.length > 0) {
-          setSelectedExamId(String(activeExams[0].exam_id));
+        if (activeExams.length > 0 && !selectedExamId) {
+          const queryParams = new URLSearchParams(location.search);
+          const examParam = queryParams.get('examId');
+          setSelectedExamId(examParam ? String(examParam) : String(activeExams[0].exam_id));
         }
       } catch (err) {
         console.error('Failed to fetch exams:', err);
@@ -55,6 +58,20 @@ export default function ScheduleExam() {
     };
     fetchExams();
   }, [token]);
+
+  // Read URL params (e.g. from Health Check modal)
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const examParam = queryParams.get('examId');
+    const searchParam = queryParams.get('search');
+    if (examParam) {
+      setSelectedExamId(String(examParam));
+    }
+    if (searchParam) {
+      setSearchTerm(searchParam);
+      setViewTab('catalog');
+    }
+  }, [location.search]);
 
   // 2. Fetch all master subjects (theory > 0) on mount
   useEffect(() => {
@@ -107,11 +124,14 @@ export default function ScheduleExam() {
         setSelectedSubjectIds(nextSelected);
         setScheduleInputs(nextInputs);
 
-        // If no schedules exist yet for this exam, switch view tab to catalog to let user pick subjects
-        if (nextSelected.size === 0) {
-          setViewTab('catalog');
-        } else {
-          setViewTab('scheduled');
+        // If no schedules exist yet for this exam and no search param, switch view tab to catalog to let user pick subjects
+        const queryParams = new URLSearchParams(location.search);
+        if (!queryParams.get('search')) {
+          if (nextSelected.size === 0) {
+            setViewTab('catalog');
+          } else {
+            setViewTab('scheduled');
+          }
         }
       } catch (err) {
         console.error('Failed to load existing schedules:', err);
@@ -146,28 +166,43 @@ export default function ScheduleExam() {
     return Array.from(d).sort();
   }, [allMasterSubjects]);
 
+  // Multi-Token Search Parser: splits comma, semicolon, or newline separated strings
+  const searchTokens = useMemo(() => {
+    if (!searchTerm) return [];
+    return searchTerm
+      .split(/[,;\n]+/)
+      .map(t => t.trim().toLowerCase())
+      .filter(Boolean);
+  }, [searchTerm]);
+
+  const checkSubjectMatchesFilter = useCallback((sub) => {
+    const matchSearch =
+      searchTokens.length === 0 ||
+      searchTokens.some(token => {
+        const code = (sub.subject_code || '').toLowerCase();
+        const name = (sub.subject_name || '').toLowerCase();
+        const branch = (sub.branch || '').toLowerCase();
+        const scheme = (sub.scheme_detail || '').toLowerCase();
+        return code.includes(token) || name.includes(token) || branch.includes(token) || scheme.includes(token);
+      });
+
+    const matchScheme = selectedScheme === 'ALL' || sub.scheme_detail === selectedScheme;
+    const matchDept = selectedDepartment === 'ALL' || sub.branch === selectedDepartment;
+
+    return matchSearch && matchScheme && matchDept;
+  }, [searchTokens, selectedScheme, selectedDepartment]);
+
   // Filter master subjects based on Search, Scheme, and Department
   const filteredCatalog = useMemo(() => {
-    return allMasterSubjects.filter(sub => {
-      const term = searchTerm.toLowerCase().trim();
-      const matchSearch =
-        !term ||
-        sub.subject_code.toLowerCase().includes(term) ||
-        sub.subject_name.toLowerCase().includes(term) ||
-        (sub.branch && sub.branch.toLowerCase().includes(term)) ||
-        (sub.scheme_detail && sub.scheme_detail.toLowerCase().includes(term));
-
-      const matchScheme = selectedScheme === 'ALL' || sub.scheme_detail === selectedScheme;
-      const matchDept = selectedDepartment === 'ALL' || sub.branch === selectedDepartment;
-
-      return matchSearch && matchScheme && matchDept;
-    });
-  }, [allMasterSubjects, searchTerm, selectedScheme, selectedDepartment]);
+    return allMasterSubjects.filter(checkSubjectMatchesFilter);
+  }, [allMasterSubjects, checkSubjectMatchesFilter]);
 
   // Filter scheduled subjects that are selected
   const scheduledSubjectsList = useMemo(() => {
-    return allMasterSubjects.filter(sub => selectedSubjectIds.has(sub.subject_id));
-  }, [allMasterSubjects, selectedSubjectIds]);
+    return allMasterSubjects
+      .filter(sub => selectedSubjectIds.has(sub.subject_id))
+      .filter(checkSubjectMatchesFilter);
+  }, [allMasterSubjects, selectedSubjectIds, checkSubjectMatchesFilter]);
 
   // Handle Input Changes
   const handleInputChange = (subjectId, field, value) => {
@@ -399,15 +434,32 @@ export default function ScheduleExam() {
           {/* Search and Filters */}
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1.2fr', gap: '1rem' }}>
             {/* Search Input */}
-            <div style={{ position: 'relative' }}>
-              <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
-              <input
-                type="text"
-                placeholder="Search subject code, title (e.g. Physics, Chemistry, Math)..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{ width: '100%', padding: '0.55rem 0.75rem 0.55rem 2.2rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.88rem' }}
-              />
+            <div>
+              <div style={{ position: 'relative' }}>
+                <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                <input
+                  type="text"
+                  placeholder="Search code, title, or paste comma-separated codes (e.g. BCS-COMP-301, HSMC-301)..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  style={{ width: '100%', padding: '0.55rem 2rem 0.55rem 2.2rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.88rem' }}
+                />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm('')}
+                    style={{ position: 'absolute', right: '0.6rem', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 0 }}
+                    title="Clear search"
+                  >
+                    <X size={15} />
+                  </button>
+                )}
+              </div>
+              {searchTokens.length > 1 && (
+                <div style={{ marginTop: '0.35rem', fontSize: '0.75rem', color: '#2563eb', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <span>⚡ Multi-code filter active: {searchTokens.length} codes ({searchTokens.join(', ')})</span>
+                </div>
+              )}
             </div>
 
             {/* Scheme Filter */}

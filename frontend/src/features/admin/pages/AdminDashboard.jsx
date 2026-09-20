@@ -3,7 +3,7 @@ import { useAuth } from '../../../context/AuthContext.jsx';
 import Layout from '../../../layouts/Layout.jsx';
 import { getAdminStatsApi, getAdminFormsApi, getAdminFormSubjectsApi } from '../api/adminApi';
 import { useNavigate, Link } from 'react-router-dom';
-import { Shield, LogOut, AlertCircle, Inbox, Eye, FileText, BookOpen, CheckCircle, BarChart3, Calendar, Clock, Users, Layers } from 'lucide-react';
+import { Shield, LogOut, AlertCircle, Inbox, Eye, FileText, BookOpen, CheckCircle, BarChart3, Calendar, Clock, Users, Layers, AlertTriangle } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { student, logout } = useAuth();
@@ -225,6 +225,24 @@ export default function AdminDashboard() {
               </div>
             </Link>
 
+            {/* 5. Student Hold List (Allowed for all employees, read-only for coordinators) */}
+            <Link 
+              to="/admin/services/hold_list" 
+              style={{ textDecoration: 'none', background: '#ffffff', border: '1.5px solid #fecaca', borderRadius: '8px', padding: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.85rem', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(220,38,38,0.05)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#dc2626'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#fecaca'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <div style={{ background: '#fef2f2', color: '#dc2626', padding: '0.6rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Shield size={22} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, color: '#002147', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  Student Hold List {isAdmin && <span style={{ fontSize: '0.65rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', padding: '0.1rem 0.35rem', borderRadius: '3px', fontWeight: 800 }}>MANAGE</span>}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Restricted students & holds</div>
+              </div>
+            </Link>
+
             {/* Admin-Only Services (Completely hidden from Department Exam Coordinator) */}
             {isAdmin && (
               <>
@@ -270,6 +288,24 @@ export default function AdminDashboard() {
                   <div>
                     <div style={{ fontWeight: 700, color: '#002147', fontSize: '0.92rem' }}>Manage Admit Cards</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Admit card releases</div>
+                  </div>
+                </Link>
+
+                {/* Failed Records — Head/Admin only */}
+                <Link 
+                  to="/admin/services/failed_records"
+                  style={{ textDecoration: 'none', background: '#ffffff', border: '1.5px solid #fca5a5', borderRadius: '8px', padding: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.85rem', transition: 'all 0.2s', boxShadow: '0 2px 4px rgba(220,38,38,0.05)' }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#dc2626'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#fca5a5'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                >
+                  <div style={{ background: '#fef2f2', color: '#dc2626', padding: '0.6rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <AlertTriangle size={22} />
+                  </div>
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#002147', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      Failed Records <span style={{ fontSize: '0.65rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fca5a5', padding: '0.1rem 0.35rem', borderRadius: '3px', fontWeight: 800 }}>ADMIN</span>
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>ATKT / Supp eligibility</div>
                   </div>
                 </Link>
               </>

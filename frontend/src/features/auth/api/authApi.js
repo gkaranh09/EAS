@@ -15,3 +15,13 @@ export const refreshStudentApi = async () => {
   const { data } = await axios.get('/api/student/me');
   return data;
 };
+
+export const logoutApi = async () => {
+  try {
+    const { data } = await axios.post('/api/auth/logout');
+    return data;
+  } catch (err) {
+    // Ignore logout errors if session already dead
+    return { success: true };
+  }
+};

@@ -13,7 +13,7 @@ const getTemplatesByProgramSemester = async (program_id, semester) => {
       p.program_name,
       tsg.group_id, tsg.group_label, tsg.sort_order,
       s.subject_id, s.subject_code, s.subject_name,
-      s.theory, s.or_pr, s.term_work, s.credit, s.scheme_detail,
+      s.ese AS theory, s.or_pr, s.tw AS term_work, s.total_credit AS credit, s.scheme_detail,
       COALESCE(d.department_name, 'Common') AS branch
     FROM semester_template st
     JOIN program p ON p.program_id = st.program_id
@@ -40,7 +40,7 @@ const getTemplateById = async (template_id) => {
       p.program_name,
       tsg.group_id, tsg.group_label, tsg.sort_order,
       s.subject_id, s.subject_code, s.subject_name,
-      s.theory, s.or_pr, s.term_work, s.credit, s.scheme_detail,
+      s.ese AS theory, s.or_pr, s.tw AS term_work, s.total_credit AS credit, s.scheme_detail,
       COALESCE(d.department_name, 'Common') AS branch
     FROM semester_template st
     JOIN program p ON p.program_id = st.program_id

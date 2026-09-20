@@ -6,6 +6,7 @@ const findById = async (id) => {
            s.full_name, s.full_name_devnagari, s.email, s.contact_number,
            s.address, s.department_id, s.program_id, s.course, s.gender,
            s.category, s.student_type, s.pwd, s.abc_id, s.admission_year, s.current_year, s.current_semester,
+           s.profile_image,
            d.department_name, d.department_code,
            p.program_name
     FROM student s
@@ -30,6 +31,7 @@ const findById = async (id) => {
     first_name,
     father_name,
     mother_name,
+    profile_image: row.profile_image || 'v1789934033/download.jpg',
     roll_no: row.roll_no || row.student_id,
     division: row.division || 'A',
     department: row.department_name || row.program_name || 'Engineering',
@@ -52,9 +54,10 @@ const updateProfile = async (id, data) => {
     category,
     student_type,
     pwd,
-    abc_id,
     roll_no,
-    division
+    division,
+    profile_image,
+    abc_id
   } = data;
 
   const combinedFullName = (full_name || [surname, first_name, father_name, mother_name].filter(Boolean).join(' ')).trim();
@@ -70,10 +73,11 @@ const updateProfile = async (id, data) => {
         category = COALESCE($7, category),
         student_type = COALESCE($8, student_type),
         pwd = COALESCE($9, pwd),
-        abc_id = COALESCE($10, abc_id),
-        roll_no = COALESCE($11, roll_no),
-        division = COALESCE($12, division)
-    WHERE id = $13
+        roll_no = COALESCE($10, roll_no),
+        division = COALESCE($11, division),
+        profile_image = COALESCE($12, profile_image),
+        abc_id = COALESCE($13, abc_id)
+    WHERE id = $14
     RETURNING id
   `;
 
@@ -87,9 +91,10 @@ const updateProfile = async (id, data) => {
     category,
     student_type,
     pwd,
-    abc_id,
     roll_no,
     division,
+    profile_image,
+    abc_id,
     id
   ];
 

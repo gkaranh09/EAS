@@ -95,6 +95,14 @@ function generatePdf(form, subjects, res) {
     '2': 'SECOND YEAR (SE)',
     '3': 'THIRD YEAR (TE)',
     '4': 'FOURTH YEAR (BE)',
+    '1D': 'FIRST YEAR (1D - DROP)',
+    '2D': 'SECOND YEAR (2D - DROP)',
+    '3D': 'THIRD YEAR (3D - DROP)',
+    '4D': 'FOURTH YEAR (4D - DROP)',
+    '1R': 'FIRST YEAR (1R - REPEATER)',
+    '2R': 'SECOND YEAR (2R - REPEATER)',
+    '3R': 'THIRD YEAR (3R - REPEATER)',
+    '4R': 'FOURTH YEAR (4R - REPEATER)',
     1: 'FIRST YEAR (FE)',
     2: 'SECOND YEAR (SE)',
     3: 'THIRD YEAR (TE)',
@@ -353,10 +361,10 @@ function generatePdf(form, subjects, res) {
 
       // Assessment Heads with Crisp Vector Ticks
       drawTick(doc, xHS1 + colSubH1W / 2, curY + 6.5, 3.2);
-      if ((sub.max_marks_endsem || sub.theory || 0) > 0) {
+      if ((sub.max_marks_endsem || sub.ese || 0) > 0) {
         drawTick(doc, xHS2 + colSubH2W / 2, curY + 6.5, 3.2);
       }
-      if ((sub.max_marks_tw || sub.term_work || 0) > 0) {
+      if ((sub.max_marks_tw || sub.tw || 0) > 0) {
         drawTick(doc, xHS3 + colSubH3W / 2, curY + 6.5, 3.2);
       }
       if ((sub.max_marks_pr || sub.or_pr || 0) > 0) {
@@ -704,7 +712,7 @@ function generateAdmitCardPdf(form, schedules, res) {
 
   const branchCode = getBranchCode(form.branch || form.category);
   const examNameText = (form.exam_name || 'Second Year Engineering DECEMBER 2024').toUpperCase();
-  const seatNo = `123150${String(form.form_id).padStart(3, '0')}`;
+  const seatNo = form.admit_card_number || `123150${String(form.form_id).padStart(3, '0')}`;
   const gender = (form.gender || 'male').toLowerCase() === 'male' || (form.gender || 'male').toLowerCase() === 'm' ? 'M' : 'F';
 
   doc.font('Times-Roman').fontSize(9.5);

@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import Layout from '../../../layouts/Layout.jsx';
-import { getAdminExamsApi, getAdminFormsApi, approveFormsApi } from '../api/adminApi';
-import { UserCheck, AlertCircle, CheckCircle, Search, Filter, Inbox, Check, X, Shield, Clock, RotateCcw } from 'lucide-react';
-
+import { getAdminExamsApi, getAdminFormsApi, approveFormsApi, checkScheduleHealthApi } from '../api/adminApi';
+import { UserCheck, AlertCircle, CheckCircle, Search, Filter, Inbox, Check, X, Shield, Clock, Lock, Activity, Copy, CheckCheck, ExternalLink, AlertTriangle } from 'lucide-react';
 import axios from 'axios';
 
 export default function ApproveForm() {
@@ -33,6 +32,12 @@ export default function ApproveForm() {
   // Alert States
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Schedule Health Modal State
+  const [healthModalOpen, setHealthModalOpen] = useState(false);
+  const [healthLoading, setHealthLoading] = useState(false);
+  const [healthData, setHealthData] = useState(null);
+  const [copiedCodes, setCopiedCodes] = useState(false);
 
   // 1. Fetch available exams and programs on mount
   useEffect(() => {
@@ -95,10 +100,10 @@ export default function ApproveForm() {
     );
   };
 
-  // Action: Approve or Revoke Selected Checkboxes
-  const handleBatchAction = async (setApprovedTarget) => {
+  // Action: Approve Selected Checkboxes (Revocation is not permitted)
+  const handleBatchAction = async () => {
     if (selectedFormIds.length === 0) {
-      setError(`Please select at least one form to ${setApprovedTarget ? 'approve' : 'revoke'}.`);
+      setError('Please select at least one form to approve.');
       return;
     }
 
@@ -108,26 +113,25 @@ export default function ApproveForm() {
     try {
       const data = await approveFormsApi({
         form_ids: selectedFormIds,
-        set_approved: setApprovedTarget
+        set_approved: true
       });
-      setSuccessMsg(data.message || `Successfully updated ${selectedFormIds.length} form(s).`);
+      setSuccessMsg(data.message || `Successfully approved ${selectedFormIds.length} form(s).`);
       fetchForms();
     } catch (err) {
-      setError(err.response?.data?.message || `Failed to ${setApprovedTarget ? 'approve' : 'revoke'} selected forms.`);
+      setError(err.response?.data?.message || 'Failed to approve selected forms.');
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Action: Approve All or Revoke All Matching Current Filters
-  const handleFilterWideAction = async (setApprovedTarget) => {
+  // Action: Approve All Matching Current Filters
+  const handleFilterWideAction = async () => {
     const examLabel = selectedExamId 
       ? exams.find(e => String(e.exam_id) === String(selectedExamId))?.exam_code || 'selected exam'
       : 'all exams';
     const branchLabel = selectedBranch !== 'ALL' ? selectedBranch : 'all branches';
 
-    const actionText = setApprovedTarget ? 'approve' : 'revoke approval for';
-    const confirmMsg = `Are you sure you want to ${actionText} ALL application forms for ${examLabel} under ${branchLabel}?`;
+    const confirmMsg = `Are you sure you want to approve ALL application forms for ${examLabel} under ${branchLabel}? Once approved, approval cannot be revoked.`;
     if (!window.confirm(confirmMsg)) return;
 
     setActionLoading(true);
@@ -138,34 +142,66 @@ export default function ApproveForm() {
         approve_all: true,
         exam_id: selectedExamId || undefined,
         branch: selectedBranch !== 'ALL' ? selectedBranch : undefined,
-        set_approved: setApprovedTarget
+        set_approved: true
       });
-      setSuccessMsg(data.message || `Successfully executed bulk ${setApprovedTarget ? 'approval' : 'revocation'}.`);
+      setSuccessMsg(data.message || `Successfully executed bulk approval.`);
       fetchForms();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to execute bulk action.');
+      setError(err.response?.data?.message || 'Failed to execute bulk approval.');
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Action: Single Row Action (Approve or Revoke)
-  const handleSingleAction = async (formId, setApprovedTarget) => {
+  // Action: Single Row Action (Approve)
+  const handleSingleAction = async (formId) => {
     setActionLoading(true);
     setError('');
     setSuccessMsg('');
     try {
       await approveFormsApi({
         form_ids: [formId],
-        set_approved: setApprovedTarget
+        set_approved: true
       });
-      setSuccessMsg(`Form #${formId} ${setApprovedTarget ? 'approved' : 'approval revoked'}.`);
+      setSuccessMsg(`Form approved successfully.`);
       fetchForms();
     } catch (err) {
-      setError('Failed to update form approval status.');
+      setError(err.response?.data?.message || 'Failed to update form approval status.');
     } finally {
       setActionLoading(false);
     }
+  };
+
+  // Handle Schedule Health Check
+  const handleCheckScheduleHealth = async () => {
+    if (!selectedExamId) {
+      setError('Please select an exam first to inspect its timetable schedule health.');
+      return;
+    }
+
+    setHealthLoading(true);
+    setError('');
+    setHealthData(null);
+    setCopiedCodes(false);
+    setHealthModalOpen(true);
+
+    try {
+      const data = await checkScheduleHealthApi(selectedExamId);
+      setHealthData(data);
+    } catch (err) {
+      console.error('Schedule health error:', err);
+      setError(err.response?.data?.message || 'Failed to check schedule health for the selected exam.');
+      setHealthModalOpen(false);
+    } finally {
+      setHealthLoading(false);
+    }
+  };
+
+  const handleCopyMissingCodes = () => {
+    if (!healthData?.missing_codes_text) return;
+    navigator.clipboard.writeText(healthData.missing_codes_text);
+    setCopiedCodes(true);
+    setTimeout(() => setCopiedCodes(false), 2500);
   };
 
   const isAllSelected = forms.length > 0 && selectedFormIds.length === forms.length;
@@ -175,13 +211,13 @@ export default function ApproveForm() {
       <div className="admin-container" style={{ paddingBottom: '4rem', paddingTop: '2rem' }}>
         
         {/* Header Title Section */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h2 style={{ color: '#002147', fontWeight: 800, margin: 0, fontSize: '1.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <UserCheck size={24} /> Approve Student Forms
+              <UserCheck size={24} /> Examination Form Verification
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '0.2rem 0 0 0' }}>
-              Review pending form applications or manage previously approved student forms.
+              Verify student applications and grant official approvals. (Approved forms are permanently locked).
             </p>
           </div>
           <button 
@@ -214,7 +250,7 @@ export default function ApproveForm() {
               transition: 'all 0.2s'
             }}
           >
-            <Clock size={18} /> Pending Approval
+            <Clock size={18} /> Pending Verification
           </button>
 
           <button
@@ -235,7 +271,7 @@ export default function ApproveForm() {
               transition: 'all 0.2s'
             }}
           >
-            <CheckCircle size={18} /> Approved Forms
+            <CheckCircle size={18} /> Approved & Locked Forms
           </button>
         </div>
 
@@ -302,11 +338,11 @@ export default function ApproveForm() {
             {/* Search Filter */}
             <div>
               <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.4rem', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Search Student
+                Search Student / Form Code
               </label>
               <input
                 type="text"
-                placeholder="Name or email..."
+                placeholder="Name, email, ef12345678..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 style={{ width: '100%', padding: '0.6rem 0.8rem', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '0.9rem' }}
@@ -332,16 +368,39 @@ export default function ApproveForm() {
         <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '1rem 1.5rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           
           <div style={{ fontSize: '0.9rem', color: '#002147', fontWeight: 600 }}>
-            {activeTab === 'pending' ? 'Unapproved' : 'Approved'} Forms: <strong>{forms.length}</strong> (Selected: {selectedFormIds.length})
+            {activeTab === 'pending' ? 'Applications Awaiting Approval' : 'Approved Forms'}: <strong>{forms.length}</strong> {activeTab === 'pending' && `(Selected: ${selectedFormIds.length})`}
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Schedule Health Button */}
+            <button
+              type="button"
+              onClick={handleCheckScheduleHealth}
+              disabled={healthLoading}
+              style={{
+                padding: '0.5rem 1rem',
+                borderRadius: '4px',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                background: '#ffffff',
+                border: '1px solid #cbd5e1',
+                color: '#002147',
+                cursor: 'pointer'
+              }}
+            >
+              <Activity size={15} color="#2563eb" />
+              {healthLoading ? 'Scanning...' : 'Check Schedule Health'}
+            </button>
+
             {activeTab === 'pending' ? (
               <>
                 <button
                   type="button"
                   className="btn btn-primary btn-sm"
-                  onClick={() => handleBatchAction(true)}
+                  onClick={handleBatchAction}
                   disabled={actionLoading || selectedFormIds.length === 0}
                   style={{ padding: '0.5rem 1rem', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
                 >
@@ -351,7 +410,7 @@ export default function ApproveForm() {
                 <button
                   type="button"
                   className="btn btn-success btn-sm"
-                  onClick={() => handleFilterWideAction(true)}
+                  onClick={handleFilterWideAction}
                   disabled={actionLoading || forms.length === 0}
                   style={{ padding: '0.5rem 1rem', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: '#16a34a', borderColor: '#16a34a', color: '#ffffff' }}
                 >
@@ -359,27 +418,20 @@ export default function ApproveForm() {
                 </button>
               </>
             ) : (
-              <>
-                <button
-                  type="button"
-                  className="btn btn-secondary btn-sm"
-                  onClick={() => handleBatchAction(false)}
-                  disabled={actionLoading || selectedFormIds.length === 0}
-                  style={{ padding: '0.5rem 1rem', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.4rem', background: '#dc2626', borderColor: '#dc2626', color: '#ffffff' }}
-                >
-                  <RotateCcw size={16} /> Revoke Selected ({selectedFormIds.length})
-                </button>
-
-                <button
-                  type="button"
-                  className="btn btn-outline btn-sm"
-                  onClick={() => handleFilterWideAction(false)}
-                  disabled={actionLoading || forms.length === 0}
-                  style={{ padding: '0.5rem 1rem', borderRadius: '4px', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.4rem', borderColor: '#dc2626', color: '#dc2626' }}
-                >
-                  <X size={16} /> Revoke All (Filtered)
-                </button>
-              </>
+              <div style={{
+                background: '#f0fdf4',
+                color: '#166534',
+                border: '1px solid #bbf7d0',
+                padding: '0.4rem 0.8rem',
+                borderRadius: '6px',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem'
+              }}>
+                <Lock size={14} /> Approved applications are permanently locked (Irrevocable)
+              </div>
             )}
           </div>
 
@@ -390,16 +442,18 @@ export default function ApproveForm() {
           <table style={{ width: '100%', minWidth: '1050px', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
             <thead>
               <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#002147', fontWeight: 'bold' }}>
-                <th style={{ padding: '1rem', width: '40px', textAlign: 'center' }}>
-                  <input
-                    type="checkbox"
-                    checked={isAllSelected}
-                    onChange={handleSelectAll}
-                    disabled={forms.length === 0}
-                    style={{ cursor: 'pointer' }}
-                  />
-                </th>
-                <th style={{ padding: '1rem', minWidth: '80px' }}>Form ID</th>
+                {activeTab === 'pending' && (
+                  <th style={{ padding: '1rem', width: '40px', textAlign: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={isAllSelected}
+                      onChange={handleSelectAll}
+                      disabled={forms.length === 0}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  </th>
+                )}
+                <th style={{ padding: '1rem', minWidth: '110px' }}>Form Code</th>
                 <th style={{ padding: '1rem', minWidth: '200px' }}>Student Details</th>
                 <th style={{ padding: '1rem', minWidth: '180px' }}>Branch</th>
                 <th style={{ padding: '1rem', minWidth: '80px' }}>Division</th>
@@ -412,14 +466,14 @@ export default function ApproveForm() {
             <tbody>
               {loadingForms ? (
                 <tr>
-                  <td colSpan="9" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={activeTab === 'pending' ? '9' : '8'} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'inline-block', width: '20px', height: '20px', border: '2px solid #cbd5e1', borderTopColor: '#002147', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
                     <p style={{ margin: '0.5rem 0 0 0' }}>Fetching {activeTab} forms...</p>
                   </td>
                 </tr>
               ) : forms.length === 0 ? (
                 <tr>
-                  <td colSpan="9" style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
+                  <td colSpan={activeTab === 'pending' ? '9' : '8'} style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}><Inbox size={32} /></div>
                     <p style={{ margin: 0 }}>No {activeTab === 'pending' ? 'unapproved' : 'approved'} student forms found matching selected criteria.</p>
                   </td>
@@ -427,17 +481,33 @@ export default function ApproveForm() {
               ) : (
                 forms.map(form => {
                   const isChecked = selectedFormIds.includes(form.form_id);
+                  const displayFormCode = form.form_code || `#${form.form_id}`;
                   return (
                     <tr key={form.form_id} style={{ borderBottom: '1px solid #f1f5f9', background: isChecked ? '#f8fafc' : 'transparent', transition: 'background 0.2s' }}>
-                      <td style={{ padding: '1rem', textAlign: 'center' }}>
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => handleToggleSelect(form.form_id)}
-                          style={{ cursor: 'pointer' }}
-                        />
+                      {activeTab === 'pending' && (
+                        <td style={{ padding: '1rem', textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => handleToggleSelect(form.form_id)}
+                            style={{ cursor: 'pointer' }}
+                          />
+                        </td>
+                      )}
+                      <td style={{ padding: '1rem' }}>
+                        <span style={{ 
+                          background: '#f1f5f9', 
+                          color: '#002147', 
+                          padding: '0.25rem 0.5rem', 
+                          borderRadius: '4px', 
+                          fontFamily: 'monospace', 
+                          fontWeight: 700, 
+                          fontSize: '0.84rem',
+                          border: '1px solid #e2e8f0'
+                        }}>
+                          {displayFormCode}
+                        </span>
                       </td>
-                      <td style={{ padding: '1rem', fontWeight: 'bold', color: '#002147' }}>#{form.form_id}</td>
                       <td style={{ padding: '1rem' }}>
                         <div style={{ fontWeight: 600, color: '#002147' }}>{form.student_name}</div>
                         <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{form.student_email}</div>
@@ -494,7 +564,7 @@ export default function ApproveForm() {
                           <button
                             type="button"
                             disabled={actionLoading}
-                            onClick={() => handleSingleAction(form.form_id, true)}
+                            onClick={() => handleSingleAction(form.form_id)}
                             style={{
                               background: '#002147',
                               color: '#ffffff',
@@ -509,29 +579,19 @@ export default function ApproveForm() {
                               gap: '0.3rem'
                             }}
                           >
-                            <Check size={12} /> Approve
+                            <Check size={12} /> Approve Form
                           </button>
                         ) : (
-                          <button
-                            type="button"
-                            disabled={actionLoading}
-                            onClick={() => handleSingleAction(form.form_id, false)}
-                            style={{
-                              background: '#fff1f2',
-                              color: '#e11d48',
-                              border: '1px solid #fecdd3',
-                              padding: '0.4rem 0.8rem',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '0.78rem',
-                              fontWeight: 'bold',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.3rem'
-                            }}
-                          >
-                            <RotateCcw size={12} /> Revoke Approval
-                          </button>
+                          <span style={{
+                            color: '#16a34a',
+                            fontSize: '0.78rem',
+                            fontWeight: 700,
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.3rem'
+                          }}>
+                            <Lock size={12} /> Locked
+                          </span>
                         )}
                       </td>
                     </tr>
@@ -541,6 +601,259 @@ export default function ApproveForm() {
             </tbody>
           </table>
         </div>
+
+        {/* Schedule Health Inspection Modal */}
+        {healthModalOpen && (
+          <div style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 33, 71, 0.6)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '1rem'
+          }}>
+            <div style={{
+              background: '#ffffff',
+              borderRadius: '12px',
+              maxWidth: '650px',
+              width: '100%',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              maxHeight: '90vh'
+            }}>
+              
+              {/* Modal Header */}
+              <div style={{
+                padding: '1.25rem 1.5rem',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: '#f8fafc'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <div style={{
+                    background: healthData?.healthy ? '#dcfce7' : '#fee2e2',
+                    padding: '0.45rem',
+                    borderRadius: '8px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    {healthData?.healthy ? (
+                      <CheckCircle size={20} color="#16a34a" />
+                    ) : (
+                      <AlertTriangle size={20} color="#dc2626" />
+                    )}
+                  </div>
+                  <div>
+                    <h4 style={{ margin: 0, color: '#002147', fontWeight: 800, fontSize: '1.1rem' }}>
+                      Schedule Health Verification
+                    </h4>
+                    <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      Exam: {exams.find(e => String(e.exam_id) === String(selectedExamId))?.exam_name || 'Selected Exam'}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setHealthModalOpen(false)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#94a3b8',
+                    cursor: 'pointer',
+                    padding: '0.2rem',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div style={{ padding: '1.5rem', overflowY: 'auto', flex: 1 }}>
+                {healthLoading ? (
+                  <div style={{ textAlign: 'center', padding: '2rem 0', color: '#64748b' }}>
+                    <Activity size={32} className="animate-spin" style={{ margin: '0 auto 0.75rem auto', color: '#2563eb' }} />
+                    <p style={{ margin: 0, fontWeight: 600 }}>Analyzing student subject applications against timetable schedule...</p>
+                  </div>
+                ) : healthData ? (
+                  <>
+                    {/* Status Banner */}
+                    <div style={{
+                      background: healthData.healthy ? '#f0fdf4' : '#fef2f2',
+                      border: healthData.healthy ? '1px solid #bbf7d0' : '1px solid #fecaca',
+                      borderRadius: '8px',
+                      padding: '1rem 1.25rem',
+                      marginBottom: '1.25rem',
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: '0.75rem'
+                    }}>
+                      {healthData.healthy ? (
+                        <CheckCircle size={20} color="#16a34a" style={{ flexShrink: 0, marginTop: '2px' }} />
+                      ) : (
+                        <AlertCircle size={20} color="#dc2626" style={{ flexShrink: 0, marginTop: '2px' }} />
+                      )}
+                      <div>
+                        <div style={{ fontWeight: 800, color: healthData.healthy ? '#166534' : '#991b1b', fontSize: '0.95rem' }}>
+                          {healthData.healthy ? '100% Timetable Health Passed' : 'Incomplete Timetable Schedule Detected'}
+                        </div>
+                        <div style={{ fontSize: '0.82rem', color: healthData.healthy ? '#15803d' : '#b91c1c', marginTop: '0.2rem' }}>
+                          {healthData.healthy
+                            ? 'All theory subjects applied by students for this exam have full exam dates and time parameters configured.'
+                            : `${healthData.missing_count} theory subject(s) selected by students currently have no exam date/time scheduled.`
+                          }
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stat Metrics */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                      <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Applied Subjects</div>
+                        <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#002147' }}>{healthData.total_applied_subjects}</div>
+                      </div>
+                      <div style={{ background: '#f0fdf4', padding: '0.75rem', borderRadius: '6px', border: '1px solid #bbf7d0', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.75rem', color: '#166534', textTransform: 'uppercase', fontWeight: 600 }}>Scheduled</div>
+                        <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#16a34a' }}>{healthData.scheduled_subjects}</div>
+                      </div>
+                      <div style={{ background: healthData.healthy ? '#f8fafc' : '#fef2f2', padding: '0.75rem', borderRadius: '6px', border: healthData.healthy ? '1px solid #e2e8f0' : '1px solid #fee2e2', textAlign: 'center' }}>
+                        <div style={{ fontSize: '0.75rem', color: healthData.healthy ? 'var(--text-muted)' : '#991b1b', textTransform: 'uppercase', fontWeight: 600 }}>Unscheduled</div>
+                        <div style={{ fontSize: '1.3rem', fontWeight: 800, color: healthData.healthy ? '#64748b' : '#dc2626' }}>{healthData.missing_count}</div>
+                      </div>
+                    </div>
+
+                    {/* Missing Subjects Table (if any) */}
+                    {!healthData.healthy && healthData.missing_subjects?.length > 0 && (
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
+                          <h5 style={{ margin: 0, color: '#002147', fontWeight: 700, fontSize: '0.9rem' }}>
+                            Unscheduled Subjects List
+                          </h5>
+                          
+                          <button
+                            type="button"
+                            onClick={handleCopyMissingCodes}
+                            style={{
+                              background: copiedCodes ? '#dcfce7' : '#f1f5f9',
+                              color: copiedCodes ? '#166534' : '#002147',
+                              border: '1px solid #cbd5e1',
+                              padding: '0.35rem 0.75rem',
+                              borderRadius: '4px',
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            {copiedCodes ? <CheckCheck size={14} color="#16a34a" /> : <Copy size={14} />}
+                            {copiedCodes ? 'Codes Copied!' : 'Copy Missing Codes'}
+                          </button>
+                        </div>
+
+                        <div style={{ border: '1px solid #e2e8f0', borderRadius: '6px', overflow: 'hidden', maxHeight: '220px', overflowY: 'auto' }}>
+                          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', textAlign: 'left' }}>
+                            <thead style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#002147' }}>
+                              <tr>
+                                <th style={{ padding: '0.6rem 0.8rem' }}>Subject Code</th>
+                                <th style={{ padding: '0.6rem 0.8rem' }}>Subject Name</th>
+                                <th style={{ padding: '0.6rem 0.8rem' }}>Branch</th>
+                                <th style={{ padding: '0.6rem 0.8rem', textAlign: 'center' }}>Sem</th>
+                                <th style={{ padding: '0.6rem 0.8rem', textAlign: 'right' }}>Students</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {healthData.missing_subjects.map((sub, idx) => (
+                                <tr key={sub.subject_id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                  <td style={{ padding: '0.6rem 0.8rem', fontFamily: 'monospace', fontWeight: 700, color: '#dc2626' }}>
+                                    {sub.subject_code}
+                                  </td>
+                                  <td style={{ padding: '0.6rem 0.8rem', fontWeight: 500, color: '#002147' }}>
+                                    {sub.subject_name}
+                                  </td>
+                                  <td style={{ padding: '0.6rem 0.8rem', color: 'var(--text-muted)' }}>
+                                    {sub.branch}
+                                  </td>
+                                  <td style={{ padding: '0.6rem 0.8rem', textAlign: 'center' }}>
+                                    {sub.semester}
+                                  </td>
+                                  <td style={{ padding: '0.6rem 0.8rem', textAlign: 'right', fontWeight: 700 }}>
+                                    {sub.student_count}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Quick Guidance Card */}
+                        <div style={{ marginTop: '0.8rem', background: '#f8fafc', padding: '0.75rem', borderRadius: '6px', border: '1px dashed #cbd5e1', fontSize: '0.8rem', color: '#475569', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span>
+                            Tip: Copy the codes above and paste them into the <strong>Schedule Exam</strong> search bar to configure their timetable.
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => navigate(`/admin/schedule-exam?examId=${selectedExamId}&search=${encodeURIComponent(healthData.missing_codes_text || '')}`)}
+                            style={{
+                              background: '#002147',
+                              color: 'white',
+                              border: 'none',
+                              padding: '0.4rem 0.8rem',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontWeight: 700,
+                              fontSize: '0.78rem',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                              flexShrink: 0
+                            }}
+                          >
+                            <ExternalLink size={13} /> Schedule Missing Subjects
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : null}
+              </div>
+
+              {/* Modal Footer */}
+              <div style={{
+                padding: '1rem 1.5rem',
+                borderTop: '1px solid #e2e8f0',
+                background: '#f8fafc',
+                borderBottomLeftRadius: '12px',
+                borderBottomRightRadius: '12px',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '0.75rem'
+              }}>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  onClick={() => setHealthModalOpen(false)}
+                  style={{ fontWeight: 600 }}
+                >
+                  Close
+                </button>
+              </div>
+
+            </div>
+          </div>
+        )}
 
       </div>
     </Layout>

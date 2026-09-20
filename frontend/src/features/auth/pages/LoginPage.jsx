@@ -3,7 +3,12 @@ import { useAuth } from '../../../context/AuthContext.jsx';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Layout from '../../../layouts/Layout.jsx';
-import { AlertCircle, GraduationCap, Briefcase, Loader2 } from 'lucide-react';
+import { 
+  User, Lock, Mail, ArrowRight, CheckCircle2, ShieldCheck, 
+  GraduationCap, Sparkles, Building, Phone, MapPin, Calendar, CreditCard, Hash, UserCheck,
+  Briefcase, AlertCircle, Loader2
+} from 'lucide-react';
+import { DepartmentSelect, ProgramSelect } from '../../../components/common/LookupSelect';
 
 const GoogleIcon = () => (
   <svg className="google-logo-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -21,8 +26,31 @@ export default function LoginPage() {
   const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [userType, setUserType] = useState('student'); // 'student' | 'faculty'
   const [error, setError] = useState('');
+  const [lockoutSeconds, setLockoutSeconds] = useState(0);
   const [departmentsList, setDepartmentsList] = useState([]);
   const [programsList, setProgramsList] = useState([]);
+
+  // Synchronized countdown timer for 429 rate limit lockout
+  useEffect(() => {
+    if (lockoutSeconds <= 0) return;
+    const interval = setInterval(() => {
+      setLockoutSeconds(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          setError('');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [lockoutSeconds]);
+
+  const formatCountdown = (secs) => {
+    const m = Math.floor(secs / 60).toString().padStart(2, '0');
+    const s = (secs % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
   const [form, setForm] = useState({
     surname: '',
     first_name: '',
@@ -36,8 +64,9 @@ export default function LoginPage() {
     program: 'Bachelor of Engineering - Computer Engineering',
     program_id: '1',
     admission_year: '2023',
-    current_year: 'SE',
+    current_year: '2',
     current_semester: '3',
+    abc_id: '',
     role: 'Coordinator',
   });
 
@@ -77,8 +106,13 @@ export default function LoginPage() {
       result = await login(form.email, form.password, userType);
     } else {
       // Registration is strictly for Students (All employees/admins are registered by Exam Center Head)
-      if (!form.surname || !form.first_name || !form.father_name || !form.mother_name || !form.email || !form.password || !form.department_id || !form.program_id || !form.admission_year || !form.current_year || !form.current_semester) {
-        setError('Please fill in all name and registration fields.');
+      if (!form.surname || !form.first_name || !form.father_name || !form.mother_name || !form.email || !form.password || !form.department_id || !form.program_id || !form.admission_year || !form.current_year || !form.current_semester || !form.abc_id) {
+        setError('Please fill in all name, registration, and ABC ID fields.');
+        return;
+      }
+
+      if (form.abc_id.trim().length !== 12) {
+        setError('ABC ID must be exactly 12 digits (e.g. 000000000000)');
         return;
       }
 
@@ -99,7 +133,8 @@ export default function LoginPage() {
         program: form.program,
         admission_year: form.admission_year,
         current_year: form.current_year,
-        current_semester: form.current_semester
+        current_semester: form.current_semester,
+        abc_id: form.abc_id
       });
     }
 
@@ -111,7 +146,13 @@ export default function LoginPage() {
         window.location.href = '/dashboard';
       }
     } else {
-      setError(result.message);
+      if (result.status === 429 || result.retryAfter) {
+        const secs = result.retryAfter || 900;
+        setLockoutSeconds(secs);
+        setError(`Rate limit reached: Too many attempts from this network. Please retry in ${formatCountdown(secs)}.`);
+      } else {
+        setError(result.message);
+      }
     }
   };
 
@@ -143,6 +184,7 @@ export default function LoginPage() {
         password: 'password123',
         address: '',
         category: '',
+        abc_id: '',
         department: 'Computer Engineering',
         role: 'coordinator'
       });
@@ -369,61 +411,38 @@ export default function LoginPage() {
                 <>
                   <div className="form-group">
                     <label className="form-label" htmlFor="student_department">Department</label>
-                    <select
+                    <DepartmentSelect
                       id="student_department"
                       name="department_id"
                       className="form-select"
-                      value={form.department_id || '1'}
+                      value={form.department_id || ''}
                       onChange={(e) => {
                         const deptId = e.target.value;
-                        const deptObj = departmentsList.find(d => String(d.department_id) === String(deptId));
-                        const filteredProgs = programsList.filter(p => String(p.department_id) === String(deptId));
-                        const firstProg = filteredProgs[0] ? filteredProgs[0].program_id : '';
                         setForm(prev => ({
                           ...prev,
                           department_id: deptId,
-                          department: deptObj ? deptObj.department_name : prev.department,
-                          program_id: firstProg,
-                          program: filteredProgs[0] ? filteredProgs[0].program_name : ''
+                          program_id: ''
                         }));
                       }}
-                      required
-                    >
-                      {departmentsList.map(dept => (
-                        <option key={dept.department_id} value={dept.department_id}>
-                          {dept.department_name} ({dept.department_code})
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
 
                   <div className="form-group">
                     <label className="form-label" htmlFor="student_program">Program</label>
-                    <select
+                    <ProgramSelect
                       id="student_program"
                       name="program_id"
                       className="form-select"
-                      value={form.program_id || '1'}
+                      departmentId={form.department_id}
+                      value={form.program_id || ''}
                       onChange={(e) => {
                         const progId = e.target.value;
-                        const progObj = programsList.find(p => String(p.program_id) === String(progId));
                         setForm(prev => ({
                           ...prev,
-                          program_id: progId,
-                          program: progObj ? progObj.program_name : prev.program
+                          program_id: progId
                         }));
                       }}
-                      required
-                    >
-                      {programsList
-                        .filter(p => !form.department_id || String(p.department_id) === String(form.department_id))
-                        .map(prog => (
-                          <option key={prog.program_id} value={prog.program_id}>
-                            {prog.program_name}
-                          </option>
-                        ))
-                      }
-                    </select>
+                    />
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '0.75rem' }}>
@@ -453,10 +472,18 @@ export default function LoginPage() {
                         onChange={handleChange}
                         required
                       >
-                        <option value="FE">FE – First Year</option>
-                        <option value="SE">SE – Second Year</option>
-                        <option value="TE">TE – Third Year</option>
-                        <option value="BE">BE – Final Year</option>
+                        <option value="1">1 – First Year (FE)</option>
+                        <option value="2">2 – Second Year (SE)</option>
+                        <option value="3">3 – Third Year (TE)</option>
+                        <option value="4">4 – Fourth Year (BE)</option>
+                        <option value="1D">1D – First Year (Drop Year)</option>
+                        <option value="2D">2D – Second Year (Drop Year)</option>
+                        <option value="3D">3D – Third Year (Drop Year)</option>
+                        <option value="4D">4D – Fourth Year (Drop Year)</option>
+                        <option value="1R">1R – First Year (Repeater)</option>
+                        <option value="2R">2R – Second Year (Repeater)</option>
+                        <option value="3R">3R – Third Year (Repeater)</option>
+                        <option value="4R">4R – Fourth Year (Repeater)</option>
                       </select>
                     </div>
 
@@ -475,6 +502,21 @@ export default function LoginPage() {
                         ))}
                       </select>
                     </div>
+
+                    <div className="form-group">
+                      <label className="form-label" htmlFor="abc_id">ABC ID (12 Digits)</label>
+                      <input
+                        id="abc_id"
+                        name="abc_id"
+                        type="text"
+                        maxLength={12}
+                        className="form-input"
+                        placeholder="12-digit ABC ID"
+                        value={form.abc_id}
+                        onChange={handleChange}
+                        required
+                      />
+                    </div>
                   </div>
                 </>
               )}
@@ -483,16 +525,24 @@ export default function LoginPage() {
                 id="auth-submit-btn"
                 type="submit"
                 className="btn btn-primary btn-full btn-lg"
-                style={{ background: '#002147', borderRadius: '4px', marginTop: '1.5rem', fontWeight: 'bold' }}
-                disabled={loading}
+                style={{ 
+                  background: lockoutSeconds > 0 ? '#b91c1c' : '#002147', 
+                  borderRadius: '4px', 
+                  marginTop: '1.5rem', 
+                  fontWeight: 'bold',
+                  cursor: (loading || lockoutSeconds > 0) ? 'not-allowed' : 'pointer'
+                }}
+                disabled={loading || lockoutSeconds > 0}
               >
-                {loading
-                  ? (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <Loader2 className="animate-spin" size={18} /> Please wait…
-                    </span>
-                  )
-                  : mode === 'login' ? 'LOGIN' : 'CREATE STUDENT ACCOUNT'}
+                {loading ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <Loader2 className="animate-spin" size={18} /> Please wait…
+                  </span>
+                ) : lockoutSeconds > 0 ? (
+                  <span>LOCKED (RETRY IN {formatCountdown(lockoutSeconds)})</span>
+                ) : (
+                  mode === 'login' ? 'LOGIN' : 'CREATE STUDENT ACCOUNT'
+                )}
               </button>
             </form>
 

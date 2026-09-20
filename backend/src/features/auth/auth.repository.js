@@ -23,26 +23,28 @@ const createStudent = async (data) => {
     pwd = false,
     abc_id = '000000000000',
     admission_year,
-    current_year = 'FE',
+    current_year = '1',
     current_semester = 1,
     roll_no = null,
-    division = 'A'
+    division = 'A',
+    profile_image = 'v1789934033/download.jpg'
   } = data;
 
   const insertRes = await pool.query(
     `INSERT INTO student (
       student_id, full_name, full_name_devnagari, email, contact_number, password_hash, address,
       department_id, program_id, course, gender, category, student_type, pwd, abc_id,
-      admission_year, current_year, current_semester, roll_no, division
+      admission_year, current_year, current_semester, roll_no, division, profile_image
     ) VALUES (
       $1, $2, $3, $4, $5, $6, $7,
       $8, $9, $10, $11, $12, $13, $14, $15,
-      $16, $17, $18, $19, $20
+      $16, $17, $18, $19, $20, $21
     ) RETURNING id`,
     [
       student_id, full_name, full_name_devnagari, email, contact_number, password_hash, address,
       department_id, program_id, course, gender, category, student_type, pwd, abc_id,
-      admission_year, current_year, current_semester, roll_no || student_id, division || 'A'
+      admission_year, current_year, current_semester, roll_no || student_id, division || 'A',
+      profile_image || 'v1789934033/download.jpg'
     ]
   );
   return await findStudentByEmail(email);
@@ -53,6 +55,7 @@ const findStudentByEmail = async (email) => {
     SELECT s.id, s.student_id, s.roll_no, s.division, s.full_name, s.full_name_devnagari, s.email, s.contact_number,
            s.password_hash, s.address, s.department_id, s.program_id, s.course, s.gender,
            s.category, s.student_type, s.pwd, s.abc_id, s.admission_year, s.current_year, s.current_semester,
+           s.profile_image,
            d.department_name, d.department_code,
            p.program_name
     FROM student s
@@ -64,6 +67,7 @@ const findStudentByEmail = async (email) => {
   const row = result.rows[0];
   return {
     ...row,
+    profile_image: row.profile_image || 'v1789934033/download.jpg',
     roll_no: row.roll_no || row.student_id,
     division: row.division || 'A',
     department: row.department_name || row.program_name || 'Engineering',

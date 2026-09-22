@@ -39,7 +39,7 @@ export default function Layout({ children }) {
           {/* Brand Left */}
           <Link to="/" className="tcet-brand" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
             <div className="tcet-brand-text">
-              <span className="tcet-brand-title" style={{ color: '#ffffff', fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.02em', display: 'block' }}>TCET EXAM</span>
+              <span className="tcet-brand-title" style={{ color: '#ffffff', fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.02em', display: 'block' }}>TCET EXAM PORTAL</span>
               <span className="tcet-brand-subtitle" style={{ color: '#c58c28', fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' }}>ONLINE EXAM PROCESSING SYSTEM</span>
             </div>
           </Link>
@@ -255,7 +255,7 @@ export default function Layout({ children }) {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 2rem', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
               <div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.02em', color: '#ffffff' }}>TCET EXAM</div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '0.02em', color: '#ffffff' }}>TCET EXAM PORTAL</div>
                 <div style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.08em', color: '#c58c28' }}>ONLINE EXAM PROCESSING SYSTEM</div>
               </div>
             </div>

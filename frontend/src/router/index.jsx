@@ -12,6 +12,9 @@ const AdminDashboard = React.lazy(() => import('../features/admin/pages/AdminDas
 const CountAnalysis = React.lazy(() => import('../features/admin/pages/CountAnalysis.jsx'));
 const CreateExam = React.lazy(() => import('../features/admin/pages/CreateExam.jsx'));
 const CreateSubject = React.lazy(() => import('../features/admin/pages/CreateSubject.jsx'));
+const InstituteHub = React.lazy(() => import('../features/admin/pages/InstituteHub.jsx'));
+const InstituteSubjects = React.lazy(() => import('../features/admin/pages/InstituteSubjects.jsx'));
+const InstituteStudents = React.lazy(() => import('../features/admin/pages/InstituteStudents.jsx'));
 const ScheduleExam = React.lazy(() => import('../features/admin/pages/ScheduleExam.jsx'));
 const ApproveForm = React.lazy(() => import('../features/admin/pages/ApproveForm.jsx'));
 const AdmitCardManage = React.lazy(() => import('../features/admin/pages/AdmitCardManage.jsx'));
@@ -94,6 +97,12 @@ export default function AppRouter() {
         <Route path="/admin/services/hold_list" element={<AdminProtectedRoute><HoldListManagement /></AdminProtectedRoute>} />
         <Route path="/admin/create/exam" element={<AdminOnlyRoute><CreateExam /></AdminOnlyRoute>} />
         <Route path="/admin/create/subject" element={<AdminProtectedRoute><CreateSubject /></AdminProtectedRoute>} />
+        <Route path="/institute" element={<AdminProtectedRoute><InstituteHub /></AdminProtectedRoute>} />
+        <Route path="/admin/services/institute" element={<AdminProtectedRoute><InstituteHub /></AdminProtectedRoute>} />
+        <Route path="/institute/subjects" element={<AdminProtectedRoute><InstituteSubjects /></AdminProtectedRoute>} />
+        <Route path="/admin/subjects" element={<AdminProtectedRoute><InstituteSubjects /></AdminProtectedRoute>} />
+        <Route path="/institute/students" element={<AdminProtectedRoute><InstituteStudents /></AdminProtectedRoute>} />
+        <Route path="/admin/students" element={<AdminProtectedRoute><InstituteStudents /></AdminProtectedRoute>} />
         <Route path="/admin/create/schedule" element={<AdminOnlyRoute><ScheduleExam /></AdminOnlyRoute>} />
         <Route path="/admin/action/approve_form" element={<AdminProtectedRoute><ApproveForm /></AdminProtectedRoute>} />
         <Route path="/admin/action/admit_card" element={<AdminOnlyRoute><AdmitCardManage /></AdminOnlyRoute>} />

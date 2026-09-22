@@ -1355,9 +1355,152 @@ router.delete('/hold-list/:id', auth, requireRole('HEAD', 'ADMIN'), async (req, 
   }
 });
 
-// GET /api/admin/hold-check
-// Student-facing: check if logged-in student is currently restricted (hold).
-// Uses student auth (not admin auth) — needs to be mounted separately.
-// We'll use the student's token to identify them.
+// ─── GET /api/admin/students ─────────────────────────────────────────
+// Paginated student directory with department, program, division, max count, and multi-term search
+router.get('/students', auth, requireRole('HEAD', 'ADMIN', 'COORDINATOR'), async (req, res) => {
+  try {
+    const { 
+      department_id, 
+      program_id, 
+      division, 
+      semester, 
+      search, 
+      page = 1, 
+      limit = 50 
+    } = req.query;
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(1000, Math.max(1, parseInt(limit, 10) || 50));
+    const offset = (pageNum - 1) * limitNum;
+
+    let baseQuery = `
+      FROM student s
+      LEFT JOIN department d ON d.department_id = s.department_id
+      LEFT JOIN program p ON p.program_id = s.program_id
+      WHERE 1=1
+    `;
+    const params = [];
+
+    // RBAC program scoping for coordinators
+    const allowedPids = await getAllowedProgramIds(req.user);
+    if (allowedPids !== null) {
+      if (allowedPids.length === 0) {
+        return res.json({
+          students: [],
+          pagination: { total: 0, page: pageNum, limit: limitNum, totalPages: 0 }
+        });
+      }
+      params.push(allowedPids);
+      baseQuery += ` AND s.program_id = ANY($${params.length}::int[])`;
+    }
+
+    if (department_id && department_id !== 'ALL' && department_id !== 'undefined') {
+      params.push(parseInt(department_id, 10));
+      baseQuery += ` AND s.department_id = $${params.length}`;
+    }
+
+    if (program_id && program_id !== 'ALL' && program_id !== 'undefined') {
+      params.push(parseInt(program_id, 10));
+      baseQuery += ` AND s.program_id = $${params.length}`;
+    }
+
+    if (division && division !== 'ALL' && division !== 'undefined') {
+      params.push(division.trim());
+      baseQuery += ` AND s.division ILIKE $${params.length}`;
+    }
+
+    if (semester && semester !== 'ALL' && semester !== 'undefined') {
+      params.push(parseInt(semester, 10));
+      baseQuery += ` AND s.current_semester = $${params.length}`;
+    }
+
+    if (search && search.trim()) {
+      const searchTerms = search.split(',').map(t => t.trim()).filter(Boolean);
+      if (searchTerms.length > 0) {
+        const searchConditions = [];
+        for (const term of searchTerms) {
+          params.push(`%${term}%`);
+          const idx = params.length;
+          searchConditions.push(`(
+            s.student_id ILIKE $${idx} OR 
+            s.abc_id ILIKE $${idx} OR 
+            s.full_name ILIKE $${idx} OR 
+            s.email ILIKE $${idx} OR 
+            s.roll_no ILIKE $${idx} OR 
+            s.contact_number ILIKE $${idx}
+          )`);
+        }
+        baseQuery += ` AND (${searchConditions.join(' OR ')})`;
+      }
+    }
+
+    // Total matching records count
+    const countSql = `SELECT COUNT(*) AS total ${baseQuery}`;
+    const countResult = await pool.query(countSql, params);
+    const totalCount = parseInt(countResult.rows[0].total, 10) || 0;
+    const totalPages = Math.ceil(totalCount / limitNum);
+
+    // Paginated student data
+    const dataSql = `
+      SELECT 
+        s.id,
+        s.student_id,
+        s.full_name,
+        s.full_name_devnagari,
+        s.email,
+        s.contact_number,
+        s.address,
+        s.department_id,
+        s.program_id,
+        s.course,
+        s.gender,
+        s.category,
+        s.student_type,
+        s.pwd,
+        s.abc_id,
+        s.admission_year,
+        s.current_year,
+        s.current_semester,
+        s.roll_no,
+        s.division,
+        s.profile_image,
+        d.department_name,
+        d.department_code,
+        p.program_name
+      ${baseQuery}
+      ORDER BY s.student_id ASC
+      LIMIT $${params.length + 1} OFFSET $${params.length + 2}
+    `;
+
+    const dataParams = [...params, limitNum, offset];
+    const dataResult = await pool.query(dataSql, dataParams);
+
+    res.json({
+      students: dataResult.rows,
+      pagination: {
+        total: totalCount,
+        page: pageNum,
+        limit: limitNum,
+        totalPages: totalPages
+      }
+    });
+  } catch (err) {
+    console.error('Get students directory error:', err);
+    res.status(500).json({ message: 'Server error loading student directory' });
+  }
+});
+
+// GET /api/admin/students/divisions
+router.get('/students/divisions', auth, requireRole('HEAD', 'ADMIN', 'COORDINATOR'), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT DISTINCT division FROM student WHERE division IS NOT NULL AND division != '' ORDER BY division ASC`
+    );
+    const list = result.rows.map(r => r.division);
+    res.json(list.length > 0 ? list : ['A', 'B', 'C', 'D']);
+  } catch (err) {
+    res.json(['A', 'B', 'C', 'D']);
+  }
+});
 
 module.exports = router;

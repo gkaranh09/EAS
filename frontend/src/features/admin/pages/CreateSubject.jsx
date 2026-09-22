@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import Layout from '../../../layouts/Layout.jsx';
 import { createAdminSubjectApi } from '../api/adminApi';
-import { BookOpen, AlertCircle, CheckCircle } from 'lucide-react';
+import { BookOpen, AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
 import { DepartmentSelect } from '../../../components/common/LookupSelect';
 
 export default function CreateSubject() {
@@ -105,14 +105,32 @@ export default function CreateSubject() {
               Register a new course in the Master Subject Catalog (can be mapped across any semester or program).
             </p>
           </div>
-          <button 
-            type="button"
-            className="btn btn-outline"
-            onClick={() => navigate('/admin/dashboard')}
-            style={{ borderColor: '#cbd5e1', color: '#002147', fontWeight: 'bold' }}
-          >
-            ← Back to Console
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <button 
+              type="button"
+              className="btn btn-outline"
+              onClick={() => window.open('/institute/subjects', '_blank')}
+              style={{
+                borderColor: '#002147',
+                color: '#002147',
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.45rem',
+                background: '#f8fafc'
+              }}
+            >
+              <ExternalLink size={16} /> Show Subjects
+            </button>
+            <button 
+              type="button"
+              className="btn btn-outline"
+              onClick={() => navigate('/admin/dashboard')}
+              style={{ borderColor: '#cbd5e1', color: '#002147', fontWeight: 'bold' }}
+            >
+              ← Back to Console
+            </button>
+          </div>
         </div>
 
         {error && <div className="alert error" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertCircle size={16} /> {error}</div>}

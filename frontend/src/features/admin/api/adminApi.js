@@ -90,3 +90,12 @@ export const bulkUnrestrictApi = async (ids, remark) =>
   (await axios.patch('/api/admin/hold-list/bulk-unrestrict', { ids, remark })).data;
 export const deleteHoldRecordApi = async (id) =>
   (await axios.delete(`/api/admin/hold-list/${id}`)).data;
+
+// =======================
+// INSTITUTE DIRECTORY
+// =======================
+export const getInstituteStudentsApi = async (params = {}) =>
+  (await axios.get('/api/admin/students', { params })).data;
+export const getInstituteDivisionsApi = async () =>
+  (await axios.get('/api/admin/students/divisions')).data;
+

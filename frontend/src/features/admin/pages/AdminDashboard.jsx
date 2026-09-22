@@ -3,7 +3,7 @@ import { useAuth } from '../../../context/AuthContext.jsx';
 import Layout from '../../../layouts/Layout.jsx';
 import { getAdminStatsApi, getAdminFormsApi, getAdminFormSubjectsApi } from '../api/adminApi';
 import { useNavigate, Link } from 'react-router-dom';
-import { Shield, LogOut, AlertCircle, Inbox, Eye, FileText, BookOpen, CheckCircle, BarChart3, Calendar, Clock, Users, Layers, AlertTriangle } from 'lucide-react';
+import { Shield, LogOut, AlertCircle, Inbox, Eye, FileText, BookOpen, CheckCircle, BarChart3, Calendar, Clock, Users, Layers, AlertTriangle, Landmark } from 'lucide-react';
 
 export default function AdminDashboard() {
   const { student, logout } = useAuth();
@@ -140,6 +140,24 @@ export default function AdminDashboard() {
             {isAdmin ? 'ALL AVAILABLE INSTITUTIONAL SERVICES' : 'AVAILABLE SERVICES FOR AUTHORIZED COORDINATE PROGRAMS'}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+            
+            {/* Institute Services Hub */}
+            <Link 
+              to="/institute" 
+              style={{ textDecoration: 'none', background: '#ffffff', border: '1.5px solid #bfdbfe', borderRadius: '8px', padding: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.85rem', transition: 'all 0.2s', boxShadow: '0 2px 5px rgba(0,33,71,0.04)' }}
+              onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#002147'; e.currentTarget.style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#bfdbfe'; e.currentTarget.style.transform = 'translateY(0)'; }}
+            >
+              <div style={{ background: '#eff6ff', color: '#002147', padding: '0.6rem', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Landmark size={22} />
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, color: '#002147', fontSize: '0.92rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                  Institute Hub <span style={{ fontSize: '0.65rem', background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd', padding: '0.1rem 0.35rem', borderRadius: '3px', fontWeight: 800 }}>PORTAL</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Master subjects & institute services</div>
+              </div>
+            </Link>
             
             {/* Head Exclusive: Employee Management */}
             {roleLower === 'head' && (

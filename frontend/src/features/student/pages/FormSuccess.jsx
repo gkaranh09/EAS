@@ -97,9 +97,9 @@ export default function FormSuccess() {
                           borderRadius: '12px', padding: '1.25rem', marginBottom: '1.75rem' }}>
               <div className="info-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
                 <div className="info-item">
-                  <span className="info-label">Form ID</span>
-                  <span className="info-value" style={{ fontFamily: 'monospace', fontSize: '1.1rem', fontWeight: 700 }}>
-                    #{formId}
+                  <span className="info-label">Application No</span>
+                  <span className="info-value" style={{ fontFamily: 'monospace', fontSize: '1.1rem', fontWeight: 800, color: '#002147' }}>
+                    {formData?.form_code || `ef${String(formId).padStart(6, '0')}`}
                   </span>
                 </div>
                 <div className="info-item">
@@ -176,7 +176,7 @@ export default function FormSuccess() {
           </div>
 
           <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.78rem', marginTop: '1.25rem' }}>
-            Keep your Form ID <strong style={{ color: 'var(--purple-light)' }}>#{formId}</strong> for future reference.
+            Keep your Application No <strong style={{ color: '#002147', fontFamily: 'monospace' }}>{formData?.form_code || `ef${String(formId).padStart(6, '0')}`}</strong> for future reference.
           </p>
         </div>
       </div>

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext.jsx';
 import Layout from '../../../layouts/Layout.jsx';
 import { createAdminSubjectApi } from '../api/adminApi';
-import { BookOpen, AlertCircle, CheckCircle, ExternalLink } from 'lucide-react';
+import { BookOpen, AlertCircle, CheckCircle, ExternalLink, ArrowLeft } from 'lucide-react';
 import { DepartmentSelect } from '../../../components/common/LookupSelect';
 
 export default function CreateSubject() {
@@ -95,17 +95,35 @@ export default function CreateSubject() {
 
   return (
     <Layout>
-      <div className="container" style={{ paddingBottom: '4rem', paddingTop: '2rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-          <div>
-            <h2 style={{ color: '#002147', fontWeight: 800, margin: 0, fontSize: '1.8rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <BookOpen size={24} /> Create New Subject
+      <div className="container" style={{ paddingBottom: '4rem', paddingTop: 'clamp(1rem, 2.5vw, 2rem)' }}>
+        {/* Header with responsive wrapping */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: '1rem',
+          marginBottom: '1.75rem'
+        }}>
+          <div style={{ flex: '1 1 280px', minWidth: 0 }}>
+            <h2 style={{
+              color: '#002147',
+              fontWeight: 800,
+              margin: 0,
+              fontSize: 'clamp(1.3rem, 4vw, 1.8rem)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              flexWrap: 'wrap'
+            }}>
+              <BookOpen size={24} style={{ flexShrink: 0 }} /> Create New Subject
             </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: '0.2rem 0 0 0' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', margin: '0.3rem 0 0 0', lineHeight: 1.4 }}>
               Register a new course in the Master Subject Catalog (can be mapped across any semester or program).
             </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
             <button 
               type="button"
               className="btn btn-outline"
@@ -114,32 +132,66 @@ export default function CreateSubject() {
                 borderColor: '#002147',
                 color: '#002147',
                 fontWeight: 700,
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.45rem',
-                background: '#f8fafc'
+                background: '#f8fafc',
+                padding: '0.55rem 0.9rem',
+                fontSize: '0.85rem'
               }}
             >
-              <ExternalLink size={16} /> Show Subjects
+              <ExternalLink size={15} /> Show Subjects
             </button>
             <button 
               type="button"
               className="btn btn-outline"
               onClick={() => navigate('/admin/dashboard')}
-              style={{ borderColor: '#cbd5e1', color: '#002147', fontWeight: 'bold' }}
+              style={{
+                borderColor: '#cbd5e1',
+                color: '#002147',
+                fontWeight: 'bold',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                padding: '0.55rem 0.9rem',
+                fontSize: '0.85rem'
+              }}
             >
-              ← Back to Console
+              <ArrowLeft size={14} /> Back to Console
             </button>
           </div>
         </div>
 
-        {error && <div className="alert error" style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><AlertCircle size={16} /> {error}</div>}
-        {success && <div className="alert success" style={{ marginBottom: '1.5rem', background: '#d1fae5', color: '#065f46', border: '1px solid #10b981', padding: '1rem', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '0.5rem' }}><CheckCircle size={16} /> Subject created successfully in master catalog!</div>}
+        {error && (
+          <div className="alert error" style={{ marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.88rem', wordBreak: 'break-word' }}>
+            <AlertCircle size={16} style={{ flexShrink: 0 }} /> {error}
+          </div>
+        )}
+        {success && (
+          <div className="alert success" style={{ marginBottom: '1.25rem', background: '#d1fae5', color: '#065f46', border: '1px solid #10b981', padding: '0.85rem 1rem', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.88rem', wordBreak: 'break-word' }}>
+            <CheckCircle size={16} style={{ flexShrink: 0 }} /> Subject created successfully in master catalog!
+          </div>
+        )}
 
-        <form onSubmit={handleSubmit} style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '2.5rem', boxShadow: '0 1px 3px rgba(0,0,0,0.02)' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+        {/* Responsive Form Card */}
+        <form onSubmit={handleSubmit} style={{
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
+          borderRadius: '8px',
+          padding: 'clamp(1rem, 3.5vw, 2.25rem)',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.04)'
+        }}>
+          {/* Row 1: Code & Name */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
+            gap: '1.25rem',
+            marginBottom: '1.25rem'
+          }}>
             <div>
-              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Subject Code</label>
+              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.4rem', fontSize: '0.85rem' }}>
+                Subject Code <span style={{ color: '#ef4444' }}>*</span>
+              </label>
               <input
                 type="text"
                 name="subject_code"
@@ -147,12 +199,14 @@ export default function CreateSubject() {
                 onChange={handleChange}
                 placeholder="e.g. PCC-COMP-302"
                 required
-                style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '0.65rem 0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Subject Name</label>
+              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.4rem', fontSize: '0.85rem' }}>
+                Subject Name <span style={{ color: '#ef4444' }}>*</span>
+              </label>
               <input
                 type="text"
                 name="subject_name"
@@ -160,14 +214,22 @@ export default function CreateSubject() {
                 onChange={handleChange}
                 placeholder="e.g. Database Management System"
                 required
-                style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '0.65rem 0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }}
               />
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+          {/* Row 2: Department & Scheme */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))',
+            gap: '1.25rem',
+            marginBottom: '1.5rem'
+          }}>
             <div>
-              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Offering Department</label>
+              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.4rem', fontSize: '0.85rem' }}>
+                Offering Department <span style={{ color: '#ef4444' }}>*</span>
+              </label>
               <DepartmentSelect
                 name="department_id"
                 value={formData.department_id}
@@ -176,7 +238,9 @@ export default function CreateSubject() {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Scheme Detail</label>
+              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.4rem', fontSize: '0.85rem' }}>
+                Scheme Detail <span style={{ color: '#ef4444' }}>*</span>
+              </label>
               <input
                 type="text"
                 name="scheme_detail"
@@ -184,49 +248,71 @@ export default function CreateSubject() {
                 onChange={handleChange}
                 required
                 placeholder="e.g. CBCGS-HME 2023"
-                style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '0.65rem 0.85rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }}
               />
             </div>
           </div>
 
-          <h3 style={{ color: '#002147', marginTop: '1rem', marginBottom: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>Exam Components (Max Marks)</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
-            <div>
-              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>ISE</label>
-              <input type="number" name="ise" value={formData.ise} onChange={handleChange} min="0" required style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>IE</label>
-              <input type="number" name="ie" value={formData.ie} onChange={handleChange} min="0" required style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Theory (ESE)</label>
-              <input type="number" name="ese" value={formData.ese} onChange={handleChange} min="0" required style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>OR-PR</label>
-              <input type="number" name="or_pr" value={formData.or_pr} onChange={handleChange} min="0" required style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Term Work (TW)</label>
-              <input type="number" name="tw" value={formData.tw} onChange={handleChange} min="0" required style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
+          {/* Section: Exam Components */}
+          <div style={{ marginTop: '1.5rem', marginBottom: '1.5rem' }}>
+            <h3 style={{ color: '#002147', margin: '0 0 0.75rem 0', fontSize: '1.05rem', fontWeight: 700 }}>
+              Exam Components (Max Marks)
+            </h3>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 110px), 1fr))',
+              gap: '0.85rem'
+            }}>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, color: '#334155', marginBottom: '0.3rem', fontSize: '0.8rem' }}>ISE</label>
+                <input type="number" name="ise" value={formData.ise} onChange={handleChange} min="0" required style={{ width: '100%', boxSizing: 'border-box', padding: '0.6rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, color: '#334155', marginBottom: '0.3rem', fontSize: '0.8rem' }}>IE</label>
+                <input type="number" name="ie" value={formData.ie} onChange={handleChange} min="0" required style={{ width: '100%', boxSizing: 'border-box', padding: '0.6rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, color: '#334155', marginBottom: '0.3rem', fontSize: '0.8rem' }}>Theory (ESE)</label>
+                <input type="number" name="ese" value={formData.ese} onChange={handleChange} min="0" required style={{ width: '100%', boxSizing: 'border-box', padding: '0.6rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, color: '#334155', marginBottom: '0.3rem', fontSize: '0.8rem' }}>OR-PR</label>
+                <input type="number" name="or_pr" value={formData.or_pr} onChange={handleChange} min="0" required style={{ width: '100%', boxSizing: 'border-box', padding: '0.6rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, color: '#334155', marginBottom: '0.3rem', fontSize: '0.8rem' }}>Term Work (TW)</label>
+                <input type="number" name="tw" value={formData.tw} onChange={handleChange} min="0" required style={{ width: '100%', boxSizing: 'border-box', padding: '0.6rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem' }} />
+              </div>
             </div>
           </div>
 
-          <h3 style={{ color: '#002147', marginTop: '1rem', marginBottom: '1rem', fontSize: '1.2rem', fontWeight: 'bold' }}>Credit Distribution</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', marginBottom: '2.5rem', background: '#f8fafc', padding: '1.5rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-            <div>
-              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Theory Credit</label>
-              <input type="number" name="theory_credit" value={formData.theory_credit} onChange={handleChange} min="0" required style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>OR-PR & TW Credit</label>
-              <input type="number" name="orprtw_credit" value={formData.orprtw_credit} onChange={handleChange} min="0" required style={{ width: '100%', padding: '0.7rem 0.9rem', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontWeight: 700, color: '#002147', marginBottom: '0.5rem', fontSize: '0.9rem' }}>Total Credit</label>
-              <div style={{ width: '100%', padding: '0.7rem 0.9rem', background: '#e2e8f0', color: '#334155', borderRadius: '4px', border: '1px solid #cbd5e1', fontWeight: 'bold' }}>
-                {parseInt(formData.theory_credit || 0) + parseInt(formData.orprtw_credit || 0)}
+          {/* Section: Credit Distribution */}
+          <div style={{ marginTop: '1.5rem', marginBottom: '2rem' }}>
+            <h3 style={{ color: '#002147', margin: '0 0 0.75rem 0', fontSize: '1.05rem', fontWeight: 700 }}>
+              Credit Distribution
+            </h3>
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))',
+              gap: '1rem',
+              background: '#f8fafc',
+              padding: 'clamp(0.85rem, 2.5vw, 1.25rem)',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0'
+            }}>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, color: '#334155', marginBottom: '0.3rem', fontSize: '0.8rem' }}>Theory Credit</label>
+                <input type="number" name="theory_credit" value={formData.theory_credit} onChange={handleChange} min="0" required style={{ width: '100%', boxSizing: 'border-box', padding: '0.6rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem', background: '#ffffff' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, color: '#334155', marginBottom: '0.3rem', fontSize: '0.8rem' }}>OR-PR & TW Credit</label>
+                <input type="number" name="orprtw_credit" value={formData.orprtw_credit} onChange={handleChange} min="0" required style={{ width: '100%', boxSizing: 'border-box', padding: '0.6rem 0.75rem', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.9rem', background: '#ffffff' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, color: '#334155', marginBottom: '0.3rem', fontSize: '0.8rem' }}>Total Credit</label>
+                <div style={{ width: '100%', boxSizing: 'border-box', padding: '0.6rem 0.75rem', background: '#e2e8f0', color: '#1e293b', borderRadius: '6px', border: '1px solid #cbd5e1', fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center' }}>
+                  {parseInt(formData.theory_credit || 0) + parseInt(formData.orprtw_credit || 0)} Credits
+                </div>
               </div>
             </div>
           </div>
@@ -234,9 +320,22 @@ export default function CreateSubject() {
           <button
             type="submit"
             disabled={loading || loadingDepts}
-            style={{ width: '100%', padding: '1rem', fontSize: '1rem', background: '#002147', color: 'white', fontWeight: 'bold', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+            style={{
+              width: '100%',
+              padding: '0.85rem 1.25rem',
+              fontSize: '0.95rem',
+              background: '#002147',
+              color: 'white',
+              fontWeight: 700,
+              border: 'none',
+              borderRadius: '6px',
+              cursor: loading || loadingDepts ? 'not-allowed' : 'pointer',
+              opacity: loading || loadingDepts ? 0.7 : 1,
+              transition: 'background 0.2s',
+              minHeight: '44px'
+            }}
           >
-            {loading ? 'Creating...' : 'Create Subject'}
+            {loading ? 'Creating Subject...' : 'Create Subject in Master Catalog'}
           </button>
         </form>
       </div>

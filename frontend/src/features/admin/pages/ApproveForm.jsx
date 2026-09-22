@@ -481,7 +481,7 @@ export default function ApproveForm() {
               ) : (
                 forms.map(form => {
                   const isChecked = selectedFormIds.includes(form.form_id);
-                  const displayFormCode = form.form_code || `#${form.form_id}`;
+                  const displayFormCode = form.form_code || `ef${String(form.form_id).padStart(6, '0')}`;
                   return (
                     <tr key={form.form_id} style={{ borderBottom: '1px solid #f1f5f9', background: isChecked ? '#f8fafc' : 'transparent', transition: 'background 0.2s' }}>
                       {activeTab === 'pending' && (

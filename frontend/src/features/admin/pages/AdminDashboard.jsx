@@ -373,7 +373,7 @@ export default function AdminDashboard() {
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.88rem' }}>
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0', color: '#002147', fontWeight: 'bold' }}>
-                    <th style={{ padding: '1rem' }}>Form ID</th>
+                    <th style={{ padding: '1rem' }}>Application No</th>
                     <th style={{ padding: '1rem' }}>Student Details</th>
                     <th style={{ padding: '1rem' }}>Division</th>
                     <th style={{ padding: '1rem' }}>Applied Exam</th>
@@ -402,7 +402,11 @@ export default function AdminDashboard() {
                   ) : (
                     forms.map(form => (
                       <tr key={form.form_id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
-                        <td style={{ padding: '1rem', fontWeight: 'bold', color: '#002147' }}>#{form.form_id}</td>
+                        <td style={{ padding: '1rem', fontWeight: 800, color: '#002147', fontFamily: 'monospace', fontSize: '0.86rem' }}>
+                          <span style={{ background: '#f1f5f9', padding: '0.2rem 0.5rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
+                            {form.form_code || `ef${String(form.form_id).padStart(6, '0')}`}
+                          </span>
+                        </td>
                         <td style={{ padding: '1rem' }}>
                           <div style={{ fontWeight: 600, color: '#002147' }}>{form.student_name}</div>
                           <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{form.student_email}</div>

@@ -153,7 +153,7 @@ export default function PaymentPage() {
         amount: orderData.amount_in_paise,
         currency: orderData.currency || 'INR',
         name: 'TCET Examination Cell',
-        description: `${exam?.exam_name || 'Examination Application'} • Form #${formId}`,
+        description: `${exam?.exam_name || 'Examination Application'} • Application No: ${formDetails?.form_code || `ef${String(formId).padStart(6, '0')}`}`,
         image: '/src/images/tcetlogo.png',
         order_id: orderData.order_id,
         prefill: {
@@ -256,7 +256,7 @@ export default function PaymentPage() {
 
           <div className="page-header" style={{ textAlign: 'center' }}>
             <h1 className="page-title" style={{ fontSize: '1.6rem' }}>Verify & Pay Fees</h1>
-            <p className="page-subtitle">Form ID: #{formId} • {exam?.exam_name}</p>
+            <p className="page-subtitle">Application No: <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{formDetails?.form_code || `ef${String(formId).padStart(6, '0')}`}</span> • {exam?.exam_name}</p>
           </div>
 
           {error && (

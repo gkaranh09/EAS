@@ -94,7 +94,7 @@ function ExamCard({ exam, onFillForm }) {
         isPaid ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
             <div className="alert success" style={{ fontSize: '0.82rem', padding: '0.5rem 0.8rem', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', display: 'flex', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
-              <CheckCircle size={15} /> Submitted and Paid ({exam.form_code ? `Application No: ${exam.form_code}` : `Form #${exam.form_id}`}).
+              <CheckCircle size={15} /> Submitted and Paid (Application No: <strong>{exam.form_code || `ef${String(exam.form_id).padStart(6, '0')}`}</strong>).
             </div>
             <div style={{
               fontSize: '0.82rem', padding: '0.5rem 0.8rem', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '0.4rem',
@@ -117,7 +117,7 @@ function ExamCard({ exam, onFillForm }) {
           </div>
         ) : (
           <div className="alert warning" style={{ fontSize: '0.82rem', padding: '0.5rem 0.8rem', background: '#fffbeb', border: '1px solid #fef3c7', color: '#b45309', marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <AlertCircle size={15} /> Application form filled. Payment pending ({exam.form_code ? `Application No: ${exam.form_code}` : `Form #${exam.form_id}`}).
+            <AlertCircle size={15} /> Application form filled. Payment pending (Application No: <strong>{exam.form_code || `ef${String(exam.form_id).padStart(6, '0')}`}</strong>).
           </div>
         )
       )}

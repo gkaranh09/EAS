@@ -16,7 +16,7 @@ router.get('/forms', auth, requireRole('HEAD', 'ADMIN', 'COORDINATOR'), async (r
   let query = `
     SELECT 
       ef.form_id,
-      ef.form_code,
+      COALESCE(ef.form_code, 'ef' || LPAD(ef.form_id::text, 6, '0')) AS form_code,
       ef.is_approved,
       ef.admit_card_released,
       s.full_name AS student_name,

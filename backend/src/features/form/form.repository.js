@@ -136,7 +136,7 @@ const getFormStatus = async (studentId) => {
   const result = await pool.query(
     `SELECT
        ef.form_id,
-       ef.form_code,
+       COALESCE(ef.form_code, 'ef' || LPAD(ef.form_id::text, 6, '0')) AS form_code,
        ef.exam_id,
        ef.is_approved,
        CASE 
